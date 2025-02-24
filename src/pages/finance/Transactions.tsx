@@ -99,7 +99,7 @@ export default function Transactions() {
   async function fetchNatures() {
     const { data, error } = await supabase.from("nature").select("*");
     if (error) {
-      console.error("Erro ao buscar Natureza:", error.message);
+      console.error("Erro ao buscar Tipo:", error.message);
     }
     setNatures(data || []);
   }
@@ -199,14 +199,14 @@ export default function Transactions() {
                   <DialogTitle>Nova Transação</DialogTitle>
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-4">
-                  <Label>Natureza</Label>
+                  <Label>Tipo</Label>
                   <Select
                     onValueChange={(value: string) =>
                       setNewTransaction({ ...newTransaction, nature_id: value })
                     }
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a Natureza" />
+                      <SelectValue placeholder="Selecione a Tipo" />
                     </SelectTrigger>
                     <SelectContent>
                       {natures.map((t) => (
@@ -279,7 +279,6 @@ export default function Transactions() {
                 <TableHead></TableHead>
                 {isMobile ? null : (
                   <>
-                    <TableHead>Natureza</TableHead>
                     <TableHead>Tipo</TableHead>
                   </>
                 )}
@@ -296,7 +295,7 @@ export default function Transactions() {
     <TableCell>{getIcon(transaction.class?.nature?.name)}</TableCell>
     {isMobile ? null : (
       <>
-        <TableCell>{transaction.nature?.name || 'Sem Natureza'}</TableCell>
+        <TableCell>{transaction.nature?.name || 'Sem Tipo'}</TableCell>
         <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
       </>
     )}
