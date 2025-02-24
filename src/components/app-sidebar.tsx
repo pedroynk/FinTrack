@@ -38,10 +38,16 @@ const data = {
           title: "Dashboard",
           url: "/finance/dashboard",
         },
+
+        {
+          title: "Recorrências",
+          url: "/finance/recurring",
+        },
         {
           title: "Transações",
           url: "/finance/transactions",
         }
+
       ],
     },
     // {

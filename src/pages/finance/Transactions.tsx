@@ -45,10 +45,11 @@ export default function Transactions() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [natures, setNatures] = useState<any[]>([]);
   const [newTransaction, setNewTransaction] = useState({
-    type_id: "",
-    amount: "",
-    category_id: "",
+    nature_id: "",
+    value: "",
+    class_id: "",
     description: "",
     date: new Date(),
   });
@@ -65,6 +66,7 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchClasses();
+    fetchNatures();
   }, []);
 
   useEffect(() => {
@@ -73,28 +75,40 @@ export default function Transactions() {
 
   async function fetchTransactions() {
     setRefreshing(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("transaction")
       .select(
-        "*, category:category_id(description, type:type_id(description))"
+        "*, class:class_id(name), nature:nature_id(name)"
       )
       .order("date", { ascending: false })
       .range((page - 1) * pageSize, page * pageSize - 1);
-
+  
+    console.log("Transações:", data);
+    console.error("Erro:", error);
+  
     setTransactions(data || []);
     setRefreshing(false);
   }
+  
 
   async function fetchClasses() {
-    const { data } = await supabase.from("type").select("*");
+    const { data } = await supabase.from("class").select("*");
     setClasses(data || []);
+  }
+
+  async function fetchNatures() {
+    const { data, error } = await supabase.from("nature").select("*");
+    if (error) {
+      console.error("Erro ao buscar Natureza:", error.message);
+    }
+    setNatures(data || []);
   }
 
   async function createTransaction() {
     const { error } = await supabase.from("transaction").insert([
       {
         ...newTransaction,
-        value: parseFloat(newTransaction.amount),
+        value: parseFloat(newTransaction.value),
       },
     ]);
 
@@ -185,10 +199,27 @@ export default function Transactions() {
                   <DialogTitle>Nova Transação</DialogTitle>
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-4">
+                  <Label>Natureza</Label>
+                  <Select
+                    onValueChange={(value: string) =>
+                      setNewTransaction({ ...newTransaction, nature_id: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a Natureza" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {natures.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Label>Classe</Label>
                   <Select
                     onValueChange={(value: string) =>
-                      setNewTransaction({ ...newTransaction, category_id: value })
+                      setNewTransaction({ ...newTransaction, class_id: value })
                     }
                   >
                     <SelectTrigger className="w-full">
@@ -209,7 +240,7 @@ export default function Transactions() {
                     onChange={(e) =>
                       setNewTransaction({
                         ...newTransaction,
-                        amount: e.target.value,
+                        value: e.target.value,
                       })
                     }
                   />
@@ -260,60 +291,66 @@ export default function Transactions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{getIcon(t.class?.type?.nature?.name)}</TableCell>
-                  {isMobile ? null : (
-                    <>
-                      <TableCell>{t.class?.type?.nature?.name}</TableCell>
-                      <TableCell>{t.class?.type?.name}</TableCell>
-                    </>
-                  )}
+            {transactions.map((transaction) => (
+  <TableRow key={transaction.id}>
+    <TableCell>{getIcon(transaction.class?.nature?.name)}</TableCell>
+    {isMobile ? null : (
+      <>
+        <TableCell>{transaction.nature?.name || 'Sem Natureza'}</TableCell>
+        <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
+      </>
+    )}
+    <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
+    <TableCell className="text-left">R$ {transaction.value?.toFixed(2) || '0.00'}</TableCell>
+    <TableCell>{transaction.description || 'Sem Descrição'}</TableCell>
+    <TableCell>
+    {transaction.date 
+  ? new Date(transaction.date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  : 'Sem Data'}
+    </TableCell>
+    <TableCell>
+      <AlertDialog
+        open={confirmOpen && selectedTransaction?.id === transaction.id}
+        onOpenChange={setConfirmOpen}
+      >
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedTransaction(transaction)}
+          >
+            <Trash2 className="text-red-500" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+          <p>
+            Esta ação não pode ser desfeita. Deseja remover esta
+            transação?
+          </p>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteTransaction}
+              disabled={loading === transaction.id}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </TableCell>
+  </TableRow>
+))}
 
-                  <TableCell>{t.class?.name}</TableCell>
-                  <TableCell className="text-right">R$ {t.value}</TableCell>
-                  <TableCell>{t.description}</TableCell>
-                  <TableCell>
-                    {new Date(t.transaction_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <AlertDialog
-                      open={confirmOpen && selectedTransaction?.id === t.id}
-                      onOpenChange={setConfirmOpen}
-                    >
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSelectedTransaction(t)}
-                          >
-                            <Trash2 className="text-red-500" />
-                          </Button>
-                        </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-                        <p>
-                          Esta ação não pode ser desfeita. Deseja remover esta
-                          transação?
-                        </p>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel
-                            onClick={() => setConfirmOpen(false)}
-                          >
-                            Cancelar
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={deleteTransaction}
-                            disabled={loading === t.id}
-                          >
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
             </TableBody>
           </Table>
         </div>
