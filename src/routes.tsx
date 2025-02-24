@@ -1,0 +1,43 @@
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+
+import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+import MainLayout from "./layouts/MainLayout";
+import ProtectedRoute from "./ProtectedRoute";
+import Transactions from "./pages/finance/Transactions";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/",
+        element: <MainLayout />,
+        children: [
+          {
+            path: "finance",
+            children: [
+              {
+                path: "transactions",
+                element: <Transactions />,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: "login",
+    element: <Login />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
+
+export default function AppRouter() {
+  return <RouterProvider router={router} />;
+}
