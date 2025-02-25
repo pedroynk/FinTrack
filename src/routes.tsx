@@ -5,6 +5,7 @@ import NotFound from "./pages/NotFound";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import Transactions from "./pages/finance/Transactions";
+import Dashboard from "./pages/finance/Dashboard";
 
 const router = createBrowserRouter([
   {
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
           {
             path: "finance",
             children: [
+              {
+                path: "dashboard",
+                element: <Dashboard />, // Rota do Dashboard
+              },
               {
                 path: "transactions",
                 element: <Transactions />,

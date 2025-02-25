@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
-import { CircleDollarSign, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { CircleDollarSign, Trash2, RefreshCw, Loader2, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -36,7 +36,9 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { DatePicker } from "@/components/DatePicker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { ptBR } from "date-fns/locale";
 import { useSidebar } from "@/components/ui/sidebar";
 
 export default function Transactions() {
@@ -55,13 +57,12 @@ export default function Transactions() {
   });
 
   const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
-  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(
-    null
-  );
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -77,19 +78,17 @@ export default function Transactions() {
     setRefreshing(true);
     const { data, error } = await supabase
       .from("transaction")
-      .select(
-        "*, class:class_id(name), nature:nature_id(name)"
-      )
+      .select("*, class:class_id(name), nature:nature_id(name)")
       .order("date", { ascending: false })
       .range((page - 1) * pageSize, page * pageSize - 1);
-  
-    console.log("Transações:", data);
-    console.error("Erro:", error);
-  
+
+    if (error) {
+      console.error("Erro:", error);
+    }
+
     setTransactions(data || []);
     setRefreshing(false);
   }
-  
 
   async function fetchClasses() {
     const { data } = await supabase.from("class").select("*");
@@ -127,6 +126,36 @@ export default function Transactions() {
       });
       fetchTransactions();
       setOpen(false);
+    }
+  }
+
+  async function updateTransaction() {
+    if (!selectedTransaction) return;
+
+    const { error } = await supabase
+      .from("transaction")
+      .update({
+        ...newTransaction,
+        value: parseFloat(newTransaction.value),
+      })
+      .match({ id: selectedTransaction.id });
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: `Falha ao atualizar transação: ${error.message}`,
+        variant: "destructive",
+        duration: 2000,
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: "Transação atualizada com sucesso!",
+        duration: 2000,
+      });
+      fetchTransactions();
+      setOpen(false);
+      setIsEditing(false);
     }
   }
 
@@ -187,16 +216,16 @@ export default function Transactions() {
                 <Loader2 className="mr-2 animate-spin" />
               ) : (
                 <RefreshCw className="mr-2" />
-              )}{" "}
+              )} {" "}
               Atualizar
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button>Adicionar Transação</Button>
+                <Button>{isEditing ? "Editar Transação" : "Adicionar Transação"}</Button>
               </DialogTrigger>
               <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
                 <DialogHeader>
-                  <DialogTitle>Nova Transação</DialogTitle>
+                  <DialogTitle>{isEditing ? "Editar Transação" : "Nova Transação"}</DialogTitle>
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-4">
                   <Label>Tipo</Label>
@@ -204,9 +233,10 @@ export default function Transactions() {
                     onValueChange={(value: string) =>
                       setNewTransaction({ ...newTransaction, nature_id: value })
                     }
+                    value={newTransaction.nature_id}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a Tipo" />
+                      <SelectValue placeholder="Selecione o Tipo" />
                     </SelectTrigger>
                     <SelectContent>
                       {natures.map((t) => (
@@ -221,6 +251,7 @@ export default function Transactions() {
                     onValueChange={(value: string) =>
                       setNewTransaction({ ...newTransaction, class_id: value })
                     }
+                    value={newTransaction.class_id}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecione a Classe" />
@@ -237,6 +268,7 @@ export default function Transactions() {
                   <Input
                     type="number"
                     min="1"
+                    value={newTransaction.value}
                     onChange={(e) =>
                       setNewTransaction({
                         ...newTransaction,
@@ -247,6 +279,7 @@ export default function Transactions() {
                   <Label>Descrição</Label>
                   <Input
                     type="text"
+                    value={newTransaction.description}
                     onChange={(e) =>
                       setNewTransaction({
                         ...newTransaction,
@@ -254,17 +287,23 @@ export default function Transactions() {
                       })
                     }
                   />
-                  <Label>Data (Opcional)</Label>
+                  <Label>Data</Label>
                   <DatePicker
-                    selectedDate={newTransaction.date}
-                    onSelect={(date) =>
+                    selected={newTransaction.date}
+                    onChange={(date) =>
                       setNewTransaction({
                         ...newTransaction,
                         date: date || new Date(),
                       })
                     }
+                    dateFormat="dd/MM/yyyy"
+                    locale={ptBR}
+                    placeholderText="Selecione uma data"
+                    className="border rounded p-2"
                   />
-                  <Button onClick={createTransaction}>Salvar</Button>
+                  <Button onClick={isEditing ? updateTransaction : createTransaction}>
+                    {isEditing ? "Atualizar" : "Salvar"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -277,11 +316,7 @@ export default function Transactions() {
             <TableHeader>
               <TableRow>
                 <TableHead></TableHead>
-                {isMobile ? null : (
-                  <>
-                    <TableHead>Tipo</TableHead>
-                  </>
-                )}
+                {isMobile ? null : <TableHead>Tipo</TableHead>}
                 <TableHead>Classe</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Descrição</TableHead>
@@ -290,66 +325,72 @@ export default function Transactions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-            {transactions.map((transaction) => (
-  <TableRow key={transaction.id}>
-    <TableCell>{getIcon(transaction.class?.nature?.name)}</TableCell>
-    {isMobile ? null : (
-      <>
-        <TableCell>{transaction.nature?.name || 'Sem Tipo'}</TableCell>
-        <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
-      </>
-    )}
-    <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
-    <TableCell className="text-left">R$ {transaction.value?.toFixed(2) || '0.00'}</TableCell>
-    <TableCell>{transaction.description || 'Sem Descrição'}</TableCell>
-    <TableCell>
-    {transaction.date 
-  ? new Date(transaction.date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  : 'Sem Data'}
-    </TableCell>
-    <TableCell>
-      <AlertDialog
-        open={confirmOpen && selectedTransaction?.id === transaction.id}
-        onOpenChange={setConfirmOpen}
-      >
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedTransaction(transaction)}
-          >
-            <Trash2 className="text-red-500" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-          <p>
-            Esta ação não pode ser desfeita. Deseja remover esta
-            transação?
-          </p>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => setConfirmOpen(false)}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={deleteTransaction}
-              disabled={loading === transaction.id}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </TableCell>
-  </TableRow>
-))}
-
+              {transactions.map((transaction) => (
+                <TableRow key={transaction.id}>
+                  <TableCell>{getIcon(transaction.class?.nature?.name)}</TableCell>
+                  {isMobile ? null : (
+                    <TableCell>{transaction.nature?.name || 'Sem Tipo'}</TableCell>
+                  )}
+                  <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
+                  <TableCell className="text-left">R$ {transaction.value?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell>{transaction.description || 'Sem Descrição'}</TableCell>
+                  <TableCell>
+                    {transaction.date
+                      ? new Date(new Date(transaction.date).getTime() + new Date(transaction.date).getTimezoneOffset() * 60000).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })
+                      : 'Sem Data'}
+                  </TableCell>
+                  <TableCell className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setNewTransaction({
+                          nature_id: transaction.nature_id,
+                          value: transaction.value.toString(),
+                          class_id: transaction.class_id,
+                          description: transaction.description,
+                          date: new Date(transaction.date),
+                        });
+                        setSelectedTransaction(transaction);
+                        setIsEditing(true);
+                        setOpen(true);
+                      }}
+                    >
+                      <Edit2 className="text-blue-500" />
+                    </Button>
+                    <AlertDialog
+                      open={confirmOpen && selectedTransaction?.id === transaction.id}
+                      onOpenChange={setConfirmOpen}
+                    >
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedTransaction(transaction)}
+                        >
+                          <Trash2 className="text-red-500" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                        <p>Esta ação não pode ser desfeita. Deseja remover esta transação?</p>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+                            Cancelar
+                          </AlertDialogCancel>
+                          <AlertDialogAction onClick={deleteTransaction} disabled={loading === transaction.id}>
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
