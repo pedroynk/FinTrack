@@ -8,45 +8,34 @@ import Transactions from "./pages/finance/Transactions";
 import Dashboard from "./pages/finance/Dashboard";
 import Recurring from "./pages/finance/Recurring";
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <ProtectedRoute />,
-    children: [
-      {
-        path: "/",
-        element: <MainLayout />,
-        children: [
-          {
-            path: "finance",
-            children: [
-              {
-                path: "dashboard",
-                element: <Dashboard />,
-              },
-              {
-                path: "recurring",
-                element: <Recurring />,
-              },
-              {
-                path: "transactions",
-                element: <Transactions />,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: "login",
-    element: <Login />,
-  },
-  {
-    path: "*",
-    element: <NotFound />,
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <ProtectedRoute />,
+      children: [
+        {
+          path: "/",
+          element: <MainLayout />,
+          children: [
+            {
+              path: "finance",
+              children: [
+                { path: "dashboard", element: <Dashboard /> },
+                { path: "recurring", element: <Recurring /> },
+                { path: "transactions", element: <Transactions /> },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    { path: "login", element: <Login /> },
+    { path: "*", element: <NotFound /> },
+  ],
+  { basename: "/" }
+);
+
 
 export default function AppRouter() {
   return <RouterProvider router={router} />;
