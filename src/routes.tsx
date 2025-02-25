@@ -5,8 +5,8 @@ import NotFound from "./pages/NotFound";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import Transactions from "./pages/finance/Transactions";
-import Dashboard from "./pages/finance/dashboard";
-import Recurring from "./pages/finance/recurring";
+import Dashboard from "./pages/finance/Dashboard";
+import Recurring from "./pages/finance/Recurring";
 
 const router = createBrowserRouter([
   {
