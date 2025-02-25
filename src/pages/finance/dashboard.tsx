@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-
 export default function TransactionsAnalytics() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -13,6 +12,8 @@ export default function TransactionsAnalytics() {
   const [loading, setLoading] = useState(true);
   const [expensesByDate, setExpensesByDate] = useState<any[]>([]);
   const [expensesByClass, setExpensesByClass] = useState<any[]>([]);
+  const [totalExpenses, setTotalExpenses] = useState<number>(0);
+  const [totalIncome, setTotalIncome] = useState<number>(0);
 
   // Estados para os filtros
   const [selectedYear, setSelectedYear] = useState<string>("Todos");
@@ -23,7 +24,7 @@ export default function TransactionsAnalytics() {
 
   // Estado para paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 16;
+  const itemsPerPage = 17;
 
   useEffect(() => {
     fetchTransactions();
@@ -78,20 +79,9 @@ export default function TransactionsAnalytics() {
       filtered = filtered.filter((t) => t.nature?.name === selectedNature);
     }
 
-    // Ordenação: Data mais recente, Natureza alfabética, Valor decrescente
-    filtered = filtered.sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      if (dateB - dateA !== 0) return dateB - dateA;
-      const natureA = a.nature?.name?.toLowerCase() || '';
-      const natureB = b.nature?.name?.toLowerCase() || '';
-      if (natureA < natureB) return -1;
-      if (natureA > natureB) return 1;
-      return b.value - a.value;
-    });
-
     setFilteredTransactions(filtered);
     processAnalytics(filtered);
+    calculateTotals(filtered);
     setCurrentPage(1); // Resetar para a primeira página ao aplicar filtros
   }
 
@@ -118,6 +108,19 @@ export default function TransactionsAnalytics() {
     setExpensesByClass(classData);
   }
 
+  function calculateTotals(data: any[]) {
+    const totalExpenses = data
+      .filter((t) => t.nature?.name === "Despesa")
+      .reduce((acc, curr) => acc + curr.value, 0);
+
+    const totalIncome = data
+      .filter((t) => t.nature?.name === "Receita")
+      .reduce((acc, curr) => acc + curr.value, 0);
+
+    setTotalExpenses(totalExpenses);
+    setTotalIncome(totalIncome);
+  }
+
   // Gerar opções únicas para ano, mês, dia, classe e natureza
   const uniqueYears = Array.from(new Set(transactions.map((t) => new Date(t.date).getFullYear().toString())));
   const uniqueMonths = Array.from(new Set(transactions.map((t) => (new Date(t.date).getMonth() + 1).toString())));
@@ -133,6 +136,18 @@ export default function TransactionsAnalytics() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Cards Totais */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="p-4 bg-green-100 shadow rounded-lg">
+          <h3 className="text-lg font-semibold text-green-800">Total de Receitas</h3>
+          <p className="text-2xl font-bold text-green-900">R$ {totalIncome.toFixed(2)}</p>
+        </div>
+        <div className="p-4 bg-red-100 shadow rounded-lg">
+          <h3 className="text-lg font-semibold text-red-800">Total de Despesas</h3>
+          <p className="text-2xl font-bold text-red-900">R$ {totalExpenses.toFixed(2)}</p>
+        </div>
+      </div>
+
       {/* Filtros */}
       <div className="flex flex-wrap gap-4 justify-left mb-6">
         {/* Filtro de Natureza */}
@@ -149,6 +164,7 @@ export default function TransactionsAnalytics() {
             ))}
           </select>
         </div>
+
         {/* Filtro de Classe */}
         <div className="flex flex-col items-start">
           <label className="block text-xs font-medium">Classe</label>
@@ -163,7 +179,6 @@ export default function TransactionsAnalytics() {
             ))}
           </select>
         </div>
-
 
         {/* Filtro de Ano */}
         <div className="flex flex-col items-start">
@@ -221,7 +236,7 @@ export default function TransactionsAnalytics() {
             {/* Gráfico de Linha - Despesas por Data */}
             <div className="p-4 bg-white shadow rounded-lg">
               <h2 className="text-m font-semibold mb-4">Movimentações por Data</h2>
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={270}>
                 <AreaChart data={expensesByDate}>
                   <XAxis dataKey="date" className="text-xs font-semibold mb-4" />
                   <YAxis />
@@ -230,13 +245,12 @@ export default function TransactionsAnalytics() {
                   <Area type="monotone" dataKey="value" stroke="#1D262D" fill="#1D262D" name="Valor (R$)" />
                 </AreaChart>
               </ResponsiveContainer>
-
             </div>
 
             {/* Gráfico de Barra - Principais Classes de Gasto */}
             <div className="p-4 bg-white shadow rounded-lg">
               <h2 className="text-m font-semibold mb-4">Despesas por Classe</h2>
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={270}>
                 <BarChart data={expensesByClass}>
                   <XAxis dataKey="name" className="text-xs font-semibold mb-4" />
                   <YAxis />
@@ -250,7 +264,6 @@ export default function TransactionsAnalytics() {
 
           {/* Tabela de Transações */}
           <div className="p-4 bg-white shadow rounded-lg overflow-auto">
-            <h2 className="text-m font-semibold mb-4">Todas as Transações</h2>
             <div className="w-full">
               <Table>
                 <TableHeader className="text-sm">
@@ -263,15 +276,26 @@ export default function TransactionsAnalytics() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="text-xs">
-                  {currentItems.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{new Date(transaction.date).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>{transaction.nature?.name || "Sem Tipo"}</TableCell>
-                      <TableCell>{transaction.class?.name || "Sem Classe"}</TableCell>
-                      <TableCell>R${transaction.value?.toFixed(2)}</TableCell>
-                      <TableCell>{transaction.description || "Sem Descrição"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {currentItems
+                    .sort((a, b) => {
+                      const dateA = new Date(a.date).getTime();
+                      const dateB = new Date(b.date).getTime();
+                      if (dateB - dateA !== 0) return dateB - dateA;
+                      const natureA = a.nature?.name?.toLowerCase() || '';
+                      const natureB = b.nature?.name?.toLowerCase() || '';
+                      if (natureA < natureB) return -1;
+                      if (natureA > natureB) return 1;
+                      return b.value - a.value;
+                    })
+                    .map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>{new Date(transaction.date).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>{transaction.nature?.name || "Sem Tipo"}</TableCell>
+                        <TableCell>{transaction.class?.name || "Sem Classe"}</TableCell>
+                        <TableCell>R${transaction.value?.toFixed(2)}</TableCell>
+                        <TableCell>{transaction.description || "Sem Descrição"}</TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
 
