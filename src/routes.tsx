@@ -6,6 +6,7 @@ import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import Transactions from "./pages/finance/Transactions";
 import Dashboard from "./pages/finance/Dashboard";
+import Recurring from "./pages/finance/Recurring";
 
 const router = createBrowserRouter([
   {
@@ -21,7 +22,11 @@ const router = createBrowserRouter([
             children: [
               {
                 path: "dashboard",
-                element: <Dashboard />, // Rota do Dashboard
+                element: <Dashboard />,
+              },
+              {
+                path: "recurring",
+                element: <Recurring />,
               },
               {
                 path: "transactions",
