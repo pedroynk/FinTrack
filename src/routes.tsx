@@ -4,9 +4,9 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
-import Transactions from "./pages/finance/Transactions.tsx";
-import Dashboard from "./pages/finance/Dashboard.tsx";
-import Recurring from "./pages/finance/Recurring.tsx";
+import Transactions from "./pages/finance/Transactions";
+import Dashboard from "./pages/finance/dashboard";
+import Recurring from "./pages/finance/recurring";
 
 const router = createBrowserRouter([
   {
