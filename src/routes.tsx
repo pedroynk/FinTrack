@@ -10,15 +10,15 @@ import Recurring from "./pages/finance/Recurring";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <ProtectedRoute />,
+    path: "/", // Rota base
+    element: <ProtectedRoute />, // Protege todas as rotas internas
     children: [
       {
-        path: "/",
+        path: "/", // MainLayout é carregado aqui
         element: <MainLayout />,
         children: [
           {
-            path: "finance/dashboard",
+            path: "finance/dashboard", // Removido "/" inicial
             element: <Dashboard />,
           },
           {
@@ -34,12 +34,12 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "login",
+    path: "/login", // Corrigido com "/" inicial
     element: <Login />,
   },
   {
-    path: "*",
-    element: <NotFound />, // Página 404
+    path: "*", // Rota para páginas não encontradas
+    element: <NotFound />,
   },
 ]);
 
