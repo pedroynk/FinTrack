@@ -1,6 +1,12 @@
 {
     "rewrites": [
       { "source": "/(.*)", "destination": "/index.html" }
+    ],
+    "builds": [
+      { "src": "vite.config.ts", "use": "@vercel/static-build" }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "/index.html" }
     ]
   }
   
