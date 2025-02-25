@@ -18,21 +18,16 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
-            path: "finance",
-            children: [
-              {
-                path: "dashboard",
-                element: <Dashboard />,
-              },
-              {
-                path: "recurring",
-                element: <Recurring />,
-              },
-              {
-                path: "transactions",
-                element: <Transactions />,
-              },
-            ],
+            path: "finance/dashboard",
+            element: <Dashboard />,
+          },
+          {
+            path: "finance/recurring",
+            element: <Recurring />,
+          },
+          {
+            path: "finance/transactions",
+            element: <Transactions />,
           },
         ],
       },
@@ -44,7 +39,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: <NotFound />, // Página 404
   },
 ]);
 
