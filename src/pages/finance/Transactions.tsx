@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { ptBR } from "date-fns/locale";
 import { useSidebar } from "@/components/ui/sidebar";
 
 export default function Transactions() {
@@ -290,16 +289,12 @@ export default function Transactions() {
                   <Label>Data</Label>
                   <DatePicker
                     selected={newTransaction.date}
-                    onChange={(date) =>
+                    onSelect={(date) =>
                       setNewTransaction({
                         ...newTransaction,
                         date: date || new Date(),
                       })
                     }
-                    dateFormat="dd/MM/yyyy"
-                    locale={ptBR}
-                    placeholderText="Selecione uma data"
-                    className="border rounded p-2"
                   />
                   <Button onClick={isEditing ? updateTransaction : createTransaction}>
                     {isEditing ? "Atualizar" : "Salvar"}
@@ -335,14 +330,7 @@ export default function Transactions() {
                   <TableCell className="text-left">R$ {transaction.value?.toFixed(2) || '0.00'}</TableCell>
                   <TableCell>{transaction.description || 'Sem Descrição'}</TableCell>
                   <TableCell>
-                    {transaction.date
-                      ? new Date(new Date(transaction.date).getTime() + new Date(transaction.date).getTimezoneOffset() * 60000).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                        })
-                      : 'Sem Data'}
-                  </TableCell>
+                    {new Date(transaction.date).toLocaleDateString()}</TableCell>
                   <TableCell className="flex gap-2">
                     <Button
                       variant="ghost"
