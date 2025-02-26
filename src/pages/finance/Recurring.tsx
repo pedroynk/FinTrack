@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogTrigger } from "@radix-ui/react-alert-dialog";
+import { AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 
 export default function RecurringTransactions() {
   const { toast } = useToast();
@@ -231,21 +233,72 @@ export default function RecurringTransactions() {
           </Dialog>
         </div>
         <Table>
-          <TableBody>
-            {recurringTransactions.map((recurring) => (
-              <TableRow key={recurring.id}>
-                <TableCell>
-                  <Button onClick={() => { setSelectedRecurring(recurring); setIsEditing(true); setOpen(true); }}>
-                    <Edit2 className="text-blue-500" />
-                  </Button>
-                  <Button onClick={() => deleteRecurring(recurring.id)}>
-                    <Trash2 className="text-red-500" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead className="text-left px-4 py-2">Classe</TableHead>
+      <TableHead className="text-left px-4 py-2">Valor</TableHead>
+      <TableHead className="text-left px-4 py-2">Descrição</TableHead>
+      <TableHead className="text-left px-4 py-2">Frequência</TableHead>
+      <TableHead className="text-left px-4 py-2">Validade</TableHead>
+      <TableHead className="text-center px-4 py-2">Ações</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {recurringTransactions.map((recurring) => (
+      <TableRow key={recurring.id}>
+        <TableCell className="px-4 py-2">{recurring.class?.name || "Sem Classe"}</TableCell>
+        <TableCell className="px-4 py-2">R${recurring.value?.toFixed(2)}</TableCell>
+        <TableCell className="px-4 py-2">{recurring.description || "Sem Descrição"}</TableCell>
+        <TableCell className="px-4 py-2">{recurring.frequency || "-"}</TableCell>
+        <TableCell className="px-4 py-2">
+          {recurring.validity ? new Date(recurring.validity).toLocaleDateString("pt-BR") : "-"}
+        </TableCell>
+        <TableCell className="px-4 py-2 text-center">
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSelectedRecurring(recurring);
+                setIsEditing(true);
+                setOpen(true);
+              }}
+            >
+              <Edit2 className="text-blue-500" />
+            </Button>
+            <AlertDialog
+              open={confirmOpen && selectedRecurring?.id === recurring.id}
+              onOpenChange={setConfirmOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedRecurring(recurring)}
+                >
+                  <Trash2 className="text-red-500" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                <p>Esta ação não pode ser desfeita. Deseja remover esta recorrência?</p>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteRecurring(recurring.id)}>
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+
       </div>
     </div>
   );
