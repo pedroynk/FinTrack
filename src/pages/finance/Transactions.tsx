@@ -218,9 +218,25 @@ export default function Transactions() {
               )} {" "}
               Atualizar
             </Button>
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+              open={open}
+              onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                  setNewTransaction({
+                    nature_id: "",
+                    value: "",
+                    class_id: "",
+                    description: "",
+                    date: new Date(),
+                  });
+                  setIsEditing(false);
+                  setSelectedTransaction(null);
+                }
+                setOpen(isOpen);
+              }}
+            >
               <DialogTrigger asChild>
-                <Button>"Adicionar Transação"</Button>
+                <Button>Adicionar Transação</Button>
               </DialogTrigger>
               <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
                 <DialogHeader>
