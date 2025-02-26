@@ -274,20 +274,25 @@ export default function RecurringTransactions() {
                     >
                       <Edit2 className="text-blue-500" />
                     </Button>
-                    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <AlertDialog
+                      open={confirmOpen && selectedRecurring?.id === recurring.id}
+                      onOpenChange={setConfirmOpen}
+                    >
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => {
-                          setSelectedRecurring(recurring);
-                          setConfirmOpen(true);
-                        }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedRecurring(recurring)}
+                        >
                           <Trash2 className="text-red-500" />
                         </Button>
                       </AlertDialogTrigger>
 
                       <AlertDialogContent className="max-w-md p-6 rounded-lg shadow-lg bg-white">
-                        <AlertDialogHeader className="text-lg font-semibold">
+                        <AlertDialogHeader className="text-lg font-semibold text-gray-900">
                           Tem certeza?
                         </AlertDialogHeader>
+
                         <p className="text-gray-600 text-sm">
                           Esta ação não pode ser desfeita. Deseja remover esta transação?
                         </p>
@@ -302,19 +307,16 @@ export default function RecurringTransactions() {
 
                           <AlertDialogAction
                             className="px-4 py-2 rounded-md bg-yellow-500 text-white font-semibold hover:bg-yellow-600"
-                            onClick={() => {
-                              if (selectedRecurring) {
-                                deleteRecurring(selectedRecurring.id);
-                                setConfirmOpen(false);
-                                setSelectedRecurring(null);
-                              }
-                            }}
+                            onClick={() => selectedRecurring && deleteRecurring(selectedRecurring.id)}
+                            disabled={loading === recurring.id}
                           >
                             Excluir
                           </AlertDialogAction>
+
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+
 
                   </div>
                 </TableCell>
