@@ -36,15 +36,15 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "/dashboard", // Atualizado
+          url: "/finance/dashboard", // Atualizado
         },
         {
           title: "Recorrências",
-          url: "/recurring", // Atualizado
+          url: "/finance/recurring", // Atualizado
         },
         {
           title: "Transações",
-          url: "/transactions", // Atualizado
+          url: "/finance/transactions", // Atualizado
         }
       ],
     },
