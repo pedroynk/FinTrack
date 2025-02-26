@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";import { Button } from "@/components/ui/button";
+} from "@/components/ui/dialog"; import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import DatePicker from "react-datepicker";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import DatePicker from "react-datepicker";
 
 export default function RecurringTransactions() {
   const [open, setOpen] = useState(false);
@@ -38,12 +38,18 @@ export default function RecurringTransactions() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
 
-  const[newRecurring, setNewRecurring] = useState ({
+  const [newRecurring, setNewRecurring] = useState<{
+    class_id: string;
+    value: string;
+    description: string;
+    frequency: string;
+    validity: Date | null;
+  }>({
     class_id: "",
     value: "",
-    description: "",  
+    description: "",
     frequency: "",
-    validity: new Date(),
+    validity: null,
   });
 
   useEffect(() => {
@@ -56,27 +62,27 @@ export default function RecurringTransactions() {
       .from("recurring_transaction")
       .select("*, class:class_id(name)")
       .order("value", { ascending: false });
-  
+
     if (error) {
       console.error("Erro:", error);
       return;
     }
-  
+
     const transactions = data ?? [];
     setRecurring(transactions);
-  
+
     const fixedSum = transactions
       .filter((item) => item.class?.name === "Fixa")
       .reduce((sum, item) => sum + (item.value || 0), 0);
-  
+
     const subscriptionSum = transactions
       .filter((item) => item.class?.name === "Assinatura")
       .reduce((sum, item) => sum + (item.value || 0), 0);
-  
+
     setFixedTotal(fixedSum);
     setSubscriptionTotal(subscriptionSum);
   }
-  
+
 
   async function fetchClasses() {
     const { data } = await supabase.from("class").select("*");
@@ -88,6 +94,8 @@ export default function RecurringTransactions() {
       {
         ...newRecurring,
         value: parseFloat(newRecurring.value),
+        validity: newRecurring.validity ? newRecurring.validity : null,
+
       },
     ]);
 
@@ -111,15 +119,16 @@ export default function RecurringTransactions() {
 
   async function updateRecurring() {
     if (!selectedRecurring) return;
-  
+
     const { error } = await supabase
       .from("recurring_transaction")
       .update({
         ...newRecurring,
         value: parseFloat(newRecurring.value),
+        validity: newRecurring.validity ? newRecurring.validity : null,
       })
       .match({ id: selectedRecurring.id });
-  
+
     if (error) {
       toast({
         title: "Erro",
@@ -133,22 +142,22 @@ export default function RecurringTransactions() {
         description: "Recorrência atualizada com sucesso!",
         duration: 2000,
       });
-  
+
       fetchRecurringTransactions();
       setOpen(false);
       setIsEditing(false);
       setSelectedRecurring(null);
-  
+
       setNewRecurring({
         class_id: "",
         value: "",
-        description: "",  
+        description: "",
         frequency: "",
-        validity: new Date(),
+        validity: null,
       });
     }
   }
-  
+
   async function deleteRecurring() {
     if (!selectedRecurring) return;
 
@@ -202,108 +211,111 @@ export default function RecurringTransactions() {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-4">
-          <h1 className="text-2xl font-bold">Transações</h1>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Dialog
-              open={open}
-              onOpenChange={(isOpen) => {
-                if (!isOpen) {
-                  setNewRecurring({
-                    class_id: "",
-                    value: "",
-                    description: "",  
-                    frequency: "",
-                    validity: new Date(),
-                  });
-                  setIsEditing(false);
-                  setSelectedRecurring(null);
-                }
-                setOpen(isOpen);
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button>Adicionar Recorrência</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
-                <DialogHeader>
-                  <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-1 gap-4">
-                  <Label>Classe</Label>
-                  <Select
-                    onValueChange={(value: string) =>
-                      setNewRecurring({ ...newRecurring, class_id: value })
-                    }
-                    value={newRecurring.class_id}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a Classe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Label>Valor</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={newRecurring.value}
-                    onChange={(e) =>
-                      setNewRecurring({
-                        ...newRecurring,
-                        value: e.target.value,
-                      })
-                    }
-                  />
-                  <Label>Descrição</Label>
-                  <Input
-                    type="text"
-                    value={newRecurring.description}
-                    onChange={(e) =>
-                      setNewRecurring({
-                        ...newRecurring,
-                        description: e.target.value,
-                      })
-                    }
-                  />
-                  <Label>Frequência</Label>
-                  <Select
-  onValueChange={(value: string) =>
-    setNewRecurring({ ...newRecurring, frequency: value })
-  }
-  value={newRecurring.frequency}
->
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Selecione a Frequência" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="Anual">Anual</SelectItem>
-    <SelectItem value="Mensal">Mensal</SelectItem>
-    <SelectItem value="Semanal">Semanal</SelectItem>
-  </SelectContent>
-</Select>
-                  <Label>Data</Label>
-                  <DatePicker
-                    selected={newRecurring.validity}
-                    onSelect={(date) =>
-                      setNewRecurring({
-                        ...newRecurring,
-                        validity: date || new Date(),
-                      })
-                    }
-                  />
-                  <Button onClick={isEditing ? updateRecurring : createRecurring}>
-                    {isEditing ? "Atualizar" : "Salvar"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <h1 className="text-2xl font-bold">Transações</h1>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Dialog
+                open={open}
+                onOpenChange={(isOpen) => {
+                  if (!isOpen) {
+                    setNewRecurring({
+                      class_id: "",
+                      value: "",
+                      description: "",
+                      frequency: "",
+                      validity: null,
+                    });
+                    setIsEditing(false);
+                    setSelectedRecurring(null);
+                  }
+                  setOpen(isOpen);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button>Adicionar Recorrência</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                  <DialogHeader>
+                    <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-1 gap-4">
+                    <Label>Classe</Label>
+                    <Select
+                      onValueChange={(value: string) =>
+                        setNewRecurring({ ...newRecurring, class_id: value })
+                      }
+                      value={newRecurring.class_id}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione a Classe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Label>Valor</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={newRecurring.value}
+                      onChange={(e) =>
+                        setNewRecurring({
+                          ...newRecurring,
+                          value: e.target.value,
+                        })
+                      }
+                    />
+                    <Label>Descrição</Label>
+                    <Input
+                      type="text"
+                      value={newRecurring.description}
+                      onChange={(e) =>
+                        setNewRecurring({
+                          ...newRecurring,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                    <Label>Frequência</Label>
+                    <Select
+                      onValueChange={(value: string) =>
+                        setNewRecurring({ ...newRecurring, frequency: value })
+                      }
+                      value={newRecurring.frequency}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione a Frequência" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Anual">Anual</SelectItem>
+                        <SelectItem value="Mensal">Mensal</SelectItem>
+                        <SelectItem value="Semanal">Semanal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Label>Data</Label>
+                    <DatePicker
+                      selected={newRecurring.validity ?? undefined}
+                      onChange={(date) =>
+                        setNewRecurring({
+                          ...newRecurring,
+                          validity: date || null,
+                        })
+                      }
+                      isClearable
+                      placeholderText="Selecione uma data"
+                    />
+
+                    <Button onClick={isEditing ? updateRecurring : createRecurring}>
+                      {isEditing ? "Atualizar" : "Salvar"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
-        </div>
 
           {/* Tabela de Despesas Fixas */}
           <div className="p-4 bg-white shadow rounded-lg">
@@ -328,51 +340,51 @@ export default function RecurringTransactions() {
                       <TableCell>{recurring.frequency}</TableCell>
                       <TableCell>{new Date(recurring.validity).toLocaleDateString()}</TableCell>
                       <TableCell className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setNewRecurring({
-                          class_id: recurring.class_id,
-                          value: recurring.value.toString(),
-                          description: recurring.description,
-                          frequency: recurring.frequency,
-                          validity: new Date(recurring.validity),
-                        });
-                        selectedRecurring(recurring);
-                        setIsEditing(true);
-                        setOpen(true);
-                      }}
-                    >
-                      <Edit2 className="text-blue-500" />
-                    </Button>
-                    <AlertDialog
-                      open={confirmOpen && selectedRecurring?.id === recurring.id}
-                      onOpenChange={setConfirmOpen}
-                    >
-                      <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setSelectedRecurring(recurring)}
+                          onClick={() => {
+                            setNewRecurring({
+                              class_id: recurring.class_id,
+                              value: recurring.value.toString(),
+                              description: recurring.description,
+                              frequency: recurring.frequency,
+                              validity: new Date(recurring.validity),
+                            });
+                            setSelectedRecurring(recurring);
+                            setIsEditing(true);
+                            setOpen(true);
+                          }}
                         >
-                          <Trash2 className="text-red-500" />
+                          <Edit2 className="text-blue-500" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-                        <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
-                            Cancelar
-                          </AlertDialogCancel>
-                          <AlertDialogAction onClick={deleteRecurring} disabled={loading === recurring.id}>
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
+                        <AlertDialog
+                          open={confirmOpen && selectedRecurring?.id === recurring.id}
+                          onOpenChange={setConfirmOpen}
+                        >
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedRecurring(recurring)}
+                            >
+                              <Trash2 className="text-red-500" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                            <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+                                Cancelar
+                              </AlertDialogCancel>
+                              <AlertDialogAction onClick={deleteRecurring} disabled={loading === recurring.id}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
