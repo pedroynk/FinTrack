@@ -217,6 +217,7 @@ export default function RecurringTransactions() {
                   <TableHead>Classe</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Frequência</TableHead>
                   <TableHead>Validade</TableHead>
                 </TableRow>
               </TableHeader>
@@ -226,6 +227,7 @@ export default function RecurringTransactions() {
                     <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>
                     <TableCell>R${recurring.value?.toFixed(2)}</TableCell>
                     <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
+                    <TableCell>{recurring.frequency}</TableCell>
                     <TableCell>{recurring.validity ? new Date(recurring.validity).toLocaleDateString("pt-BR") : "-"}</TableCell>
                   </TableRow>
                 ))}
