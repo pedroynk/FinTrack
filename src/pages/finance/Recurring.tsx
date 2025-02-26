@@ -26,6 +26,7 @@ export default function RecurringTransactions() {
   const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
   const [fixedTotal, setFixedTotal] = useState(0);
   const [subscriptionTotal, setSubscriptionTotal] = useState(0);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [newRecurring, setNewRecurring] = useState<{
     class_id: string;
     value: string;
@@ -39,7 +40,6 @@ export default function RecurringTransactions() {
     frequency: "",
     validity: null,
   });
-  
 
   useEffect(() => {
     fetchRecurringTransactions();
@@ -201,9 +201,7 @@ export default function RecurringTransactions() {
               <div className="grid grid-cols-1 gap-4">
                 <Label>Classe</Label>
                 <Select
-                  onValueChange={(value) =>
-                    setNewRecurring({ ...newRecurring, class_id: value })
-                  }
+                  onValueChange={(value) => setNewRecurring({ ...newRecurring, class_id: value })}
                   value={newRecurring.class_id}
                 >
                   <SelectTrigger className="w-full">
@@ -218,16 +216,12 @@ export default function RecurringTransactions() {
                 <Input
                   type="number"
                   value={newRecurring.value}
-                  onChange={(e) =>
-                    setNewRecurring({ ...newRecurring, value: e.target.value })
-                  }
+                  onChange={(e) => setNewRecurring({ ...newRecurring, value: e.target.value })}
                 />
                 <Label>Validade</Label>
                 <DatePicker
                   selected={newRecurring.validity}
-                  onChange={(date) =>
-                    setNewRecurring({ ...newRecurring, validity: date })
-                  }
+                  onChange={(date) => setNewRecurring({ ...newRecurring, validity: date })}
                   isClearable
                   className="w-full p-2 border rounded"
                 />
