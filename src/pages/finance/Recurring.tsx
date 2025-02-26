@@ -213,6 +213,14 @@ export default function RecurringTransactions() {
                     <SelectItem value="1">Fixa</SelectItem>
                     <SelectItem value="2">Assinatura</SelectItem>
                   </SelectContent>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione a Recorrência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Anual</SelectItem>
+                    <SelectItem value="2">Mensal</SelectItem>
+                    <SelectItem value="3">Semanal</SelectItem>
+                  </SelectContent>
                 </Select>
                 <Label>Valor</Label>
                 <Input
@@ -266,27 +274,34 @@ export default function RecurringTransactions() {
                     >
                       <Edit2 className="text-blue-500" />
                     </Button>
-                    <AlertDialog
-                      open={confirmOpen && selectedRecurring?.id === recurring.id}
-                      onOpenChange={setConfirmOpen}
-                    >
+                    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedRecurring(recurring)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => {
+                          setSelectedRecurring(recurring);
+                          setConfirmOpen(true);
+                        }}>
                           <Trash2 className="text-red-500" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-                        <p>Esta ação não pode ser desfeita. Deseja remover esta recorrência?</p>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+
+                      <AlertDialogContent className="max-w-md p-6 rounded-lg shadow-lg bg-white">
+                        <AlertDialogHeader className="text-lg font-semibold">
+                          Tem certeza?
+                        </AlertDialogHeader>
+                        <p className="text-gray-600 text-sm">
+                          Esta ação não pode ser desfeita. Deseja remover esta transação?
+                        </p>
+
+                        <AlertDialogFooter className="flex justify-end gap-2 mt-4">
+                          <AlertDialogCancel
+                            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                            onClick={() => setConfirmOpen(false)}
+                          >
                             Cancelar
                           </AlertDialogCancel>
+
                           <AlertDialogAction
+                            className="px-4 py-2 rounded-md bg-yellow-500 text-white font-semibold hover:bg-yellow-600"
                             onClick={() => {
                               if (selectedRecurring) {
                                 deleteRecurring(selectedRecurring.id);
@@ -294,13 +309,13 @@ export default function RecurringTransactions() {
                                 setSelectedRecurring(null);
                               }
                             }}
-                            disabled={loading === recurring.id}
                           >
                             Excluir
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+
                   </div>
                 </TableCell>
               </TableRow>
