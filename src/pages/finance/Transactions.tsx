@@ -130,7 +130,7 @@ export default function Transactions() {
 
   async function updateTransaction() {
     if (!selectedTransaction) return;
-
+  
     const { error } = await supabase
       .from("transaction")
       .update({
@@ -138,7 +138,7 @@ export default function Transactions() {
         value: parseFloat(newTransaction.value),
       })
       .match({ id: selectedTransaction.id });
-
+  
     if (error) {
       toast({
         title: "Erro",
@@ -152,11 +152,22 @@ export default function Transactions() {
         description: "Transação atualizada com sucesso!",
         duration: 2000,
       });
+  
       fetchTransactions();
       setOpen(false);
       setIsEditing(false);
+      setSelectedTransaction(null);
+  
+      setNewTransaction({
+        nature_id: "",
+        value: "",
+        class_id: "",
+        description: "",
+        date: new Date(),
+      });
     }
   }
+  
 
   async function deleteTransaction() {
     if (!selectedTransaction) return;
