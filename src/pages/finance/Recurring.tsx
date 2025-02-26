@@ -201,42 +201,67 @@ export default function RecurringTransactions() {
                 <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 gap-4">
-                <Label>Classe</Label>
-                <Select
-                  onValueChange={(value) => setNewRecurring({ ...newRecurring, class_id: value })}
-                  value={newRecurring.class_id}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione a Classe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Fixa</SelectItem>
-                    <SelectItem value="2">Assinatura</SelectItem>
-                  </SelectContent>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione a Recorrência" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Anual</SelectItem>
-                    <SelectItem value="2">Mensal</SelectItem>
-                    <SelectItem value="3">Semanal</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Label>Valor</Label>
-                <Input
-                  type="number"
-                  value={newRecurring.value}
-                  onChange={(e) => setNewRecurring({ ...newRecurring, value: e.target.value })}
-                />
-                <Label>Validade</Label>
-                <DatePicker
-                  selected={newRecurring.validity}
-                  onChange={(date) => setNewRecurring({ ...newRecurring, validity: date })}
-                  isClearable
-                  className="w-full p-2 border rounded"
-                />
-                <Button onClick={createOrUpdateRecurring}>{isEditing ? "Atualizar" : "Salvar"}</Button>
-              </div>
+                  <Label>Classe</Label>
+                  <Select
+                    onValueChange={(value) =>
+                      setNewRecurring({ ...newRecurring, class_id: value })
+                    }
+                    value={newRecurring.class_id}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a Classe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Fixa</SelectItem>
+                      <SelectItem value="2">Assinatura</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Label>Valor</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={newRecurring.value}
+                    onChange={(e) =>
+                      setNewRecurring({ ...newRecurring, value: e.target.value })
+                    }
+                  />
+                  <Label>Descrição</Label>
+                  <Input
+                    type="text"
+                    value={newRecurring.description}
+                    onChange={(e) =>
+                      setNewRecurring({ ...newRecurring, description: e.target.value })
+                    }
+                  />
+                  <Label>Frequência</Label>
+                  <Select
+                    onValueChange={(value) =>
+                      setNewRecurring({ ...newRecurring, frequency: value })
+                    }
+                    value={newRecurring.frequency}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a Frequência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Label>Validade</Label>
+                  <DatePicker
+                    selected={newRecurring.validity}
+                    onChange={(date) =>
+                      setNewRecurring({
+                        ...newRecurring,
+                        validity: date || new Date(),
+                      })
+                    }
+                    className="w-full p-2 border rounded"
+                  />
+                  <Button onClick={createRecurring}>Salvar</Button>
+                </div>
             </DialogContent>
           </Dialog>
         </div>
