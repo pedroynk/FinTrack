@@ -1,90 +1,86 @@
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Edit2, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog";import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogTrigger } from "@radix-ui/react-alert-dialog";
-import { AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function RecurringTransactions() {
-  const { toast } = useToast();
-  const [recurringTransactions, setRecurringTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const { isMobile } = useSidebar();
+  const { toast } = useToast();
+  const [recurringTransactions, setRecurring] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
+
+  const [loading, setLoading] = useState<string | null>(null);
   const [fixedTotal, setFixedTotal] = useState(0);
   const [subscriptionTotal, setSubscriptionTotal] = useState(0);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [newRecurring, setNewRecurring] = useState<{
-    class_id: string;
-    value: string;
-    description: string;
-    frequency: string;
-    validity: Date | null;
-  }>({
+
+
+  const[newRecurring, setNewRecurring] = useState ({
     class_id: "",
     value: "",
-    description: "",
+    description: "",  
     frequency: "",
-    validity: null,
+    validity: new Date(),
   });
 
   useEffect(() => {
     fetchRecurringTransactions();
+    fetchClasses();
   }, []);
 
   async function fetchRecurringTransactions() {
-    setLoading(true);
     const { data, error } = await supabase
       .from("recurring_transaction")
-      .select("*, class:class_id(name)");
-
+      .select("*, class:class_id(name)")
+      .order("value", { ascending: false });
+  
     if (error) {
-      toast({
-        title: "Erro",
-        description: `Falha ao buscar despesas fixas: ${error.message}`,
-        variant: "destructive",
-        duration: 2000,
-      });
-      setLoading(false);
+      console.error("Erro:", error);
       return;
     }
-
-    setRecurringTransactions(data || []);
-
-    const fixedSum = data
+  
+    const transactions = data ?? [];
+    setRecurring(transactions);
+  
+    const fixedSum = transactions
       .filter((item) => item.class?.name === "Fixa")
       .reduce((sum, item) => sum + (item.value || 0), 0);
-
-    const subscriptionSum = data
+  
+    const subscriptionSum = transactions
       .filter((item) => item.class?.name === "Assinatura")
       .reduce((sum, item) => sum + (item.value || 0), 0);
-
+  
     setFixedTotal(fixedSum);
     setSubscriptionTotal(subscriptionSum);
-    setLoading(false);
   }
+  
 
-  async function createOrUpdateRecurring() {
-    if (isEditing && selectedRecurring) {
-      await updateRecurring();
-    } else {
-      await createRecurring();
-    }
+  async function fetchClasses() {
+    const { data } = await supabase.from("class").select("*");
+    setClasses(data || []);
   }
 
   async function createRecurring() {
@@ -98,25 +94,24 @@ export default function RecurringTransactions() {
     if (error) {
       toast({
         title: "Erro",
-        description: `Falha ao adicionar Recorrência: ${error.message}`,
+        description: `Falha ao adicionar transação: ${error.message}`,
         variant: "destructive",
         duration: 2000,
       });
     } else {
       toast({
         title: "Sucesso",
-        description: "Recorrência adicionada com sucesso!",
+        description: "Transação adicionada com sucesso!",
         duration: 2000,
       });
       fetchRecurringTransactions();
       setOpen(false);
-      resetForm();
     }
   }
 
   async function updateRecurring() {
     if (!selectedRecurring) return;
-
+  
     const { error } = await supabase
       .from("recurring_transaction")
       .update({
@@ -124,7 +119,7 @@ export default function RecurringTransactions() {
         value: parseFloat(newRecurring.value),
       })
       .match({ id: selectedRecurring.id });
-
+  
     if (error) {
       toast({
         title: "Erro",
@@ -138,16 +133,32 @@ export default function RecurringTransactions() {
         description: "Recorrência atualizada com sucesso!",
         duration: 2000,
       });
+  
       fetchRecurringTransactions();
       setOpen(false);
       setIsEditing(false);
       setSelectedRecurring(null);
-      resetForm();
+  
+      setNewRecurring({
+        class_id: "",
+        value: "",
+        description: "",  
+        frequency: "",
+        validity: new Date(),
+      });
     }
   }
+  
+  async function deleteRecurring() {
+    if (!selectedRecurring) return;
 
-  async function deleteRecurring(id: number) {
-    const { error } = await supabase.from("recurring_transaction").delete().match({ id });
+    setLoading(selectedRecurring.id);
+    setConfirmOpen(false);
+
+    const { error } = await supabase
+      .from("recurring_transaction")
+      .delete()
+      .match({ id: selectedRecurring.id });
 
     if (error) {
       toast({
@@ -157,53 +168,70 @@ export default function RecurringTransactions() {
         duration: 2000,
       });
     } else {
+      setRecurring((prev) =>
+        prev.filter((t) => t.id !== selectedRecurring.id)
+      );
       toast({
         title: "Deletado",
         description: "Recorrência removida com sucesso!",
         duration: 2000,
       });
-      fetchRecurringTransactions();
     }
-  }
-
-  function resetForm() {
-    setNewRecurring({
-      class_id: "",
-      value: "",
-      description: "",
-      frequency: "",
-      validity: null,
-    });
+    setLoading(null);
+    setSelectedRecurring(null);
   }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="space-y-6">
-        <div className="flex justify-end">
-          <Dialog
-            open={open}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                resetForm();
-                setIsEditing(false);
-                setSelectedRecurring(null);
-              }
-              setOpen(isOpen);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2" /> {isEditing ? "Editar Recorrência" : "Adicionar Recorrência"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md w-full">
-              <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-1 gap-4">
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Cards de Totais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-white shadow rounded-lg">
+              <h3 className="text-lg font-semibold">Despesas Fixas</h3>
+              <p className="text-2xl font-bold text-red-500">R${fixedTotal.toFixed(2)}</p>
+            </div>
+            <div className="p-4 bg-white shadow rounded-lg">
+              <h3 className="text-lg font-semibold">Assinaturas</h3>
+              <p className="text-2xl font-bold text-blue-500">R${subscriptionTotal.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-4">
+          <h1 className="text-2xl font-bold">Transações</h1>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Dialog
+              open={open}
+              onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                  setNewRecurring({
+                    class_id: "",
+                    value: "",
+                    description: "",  
+                    frequency: "",
+                    validity: new Date(),
+                  });
+                  setIsEditing(false);
+                  setSelectedRecurring(null);
+                }
+                setOpen(isOpen);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button>Adicionar Recorrência</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-4">
                   <Label>Classe</Label>
                   <Select
-                    onValueChange={(value) =>
+                    onValueChange={(value: string) =>
                       setNewRecurring({ ...newRecurring, class_id: value })
                     }
                     value={newRecurring.class_id}
@@ -212,17 +240,23 @@ export default function RecurringTransactions() {
                       <SelectValue placeholder="Selecione a Classe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Fixa</SelectItem>
-                      <SelectItem value="2">Assinatura</SelectItem>
+                      {classes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Label>Valor</Label>
                   <Input
                     type="number"
-                    min="0"
+                    min="1"
                     value={newRecurring.value}
                     onChange={(e) =>
-                      setNewRecurring({ ...newRecurring, value: e.target.value })
+                      setNewRecurring({
+                        ...newRecurring,
+                        value: e.target.value,
+                      })
                     }
                   />
                   <Label>Descrição</Label>
@@ -230,69 +264,82 @@ export default function RecurringTransactions() {
                     type="text"
                     value={newRecurring.description}
                     onChange={(e) =>
-                      setNewRecurring({ ...newRecurring, description: e.target.value })
+                      setNewRecurring({
+                        ...newRecurring,
+                        description: e.target.value,
+                      })
                     }
                   />
                   <Label>Frequência</Label>
                   <Select
-                    onValueChange={(value) =>
-                      setNewRecurring({ ...newRecurring, frequency: value })
-                    }
-                    value={newRecurring.frequency}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a Frequência" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
-                      <SelectItem value="Semanal">Semanal</SelectItem>
-                      <SelectItem value="Anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Label>Validade</Label>
+  onValueChange={(value: string) =>
+    setNewRecurring({ ...newRecurring, frequency: value })
+  }
+  value={newRecurring.frequency}
+>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Selecione a Frequência" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="Anual">Anual</SelectItem>
+    <SelectItem value="Mensal">Mensal</SelectItem>
+    <SelectItem value="Semanal">Semanal</SelectItem>
+  </SelectContent>
+</Select>
+                  <Label>Data</Label>
                   <DatePicker
                     selected={newRecurring.validity}
-                    onChange={(date) =>
+                    onSelect={(date) =>
                       setNewRecurring({
                         ...newRecurring,
                         validity: date || new Date(),
                       })
                     }
-                    className="w-full p-2 border rounded"
                   />
-                  <Button onClick={createRecurring}>Salvar</Button>
+                  <Button onClick={isEditing ? updateRecurring : createRecurring}>
+                    {isEditing ? "Atualizar" : "Salvar"}
+                  </Button>
                 </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-left px-4 py-2">Classe</TableHead>
-              <TableHead className="text-left px-4 py-2">Valor</TableHead>
-              <TableHead className="text-left px-4 py-2">Descrição</TableHead>
-              <TableHead className="text-left px-4 py-2">Frequência</TableHead>
-              <TableHead className="text-left px-4 py-2">Validade</TableHead>
-              <TableHead className="text-center px-4 py-2">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recurringTransactions.map((recurring) => (
-              <TableRow key={recurring.id}>
-                <TableCell className="px-4 py-2">{recurring.class?.name || "Sem Classe"}</TableCell>
-                <TableCell className="px-4 py-2">R${recurring.value?.toFixed(2)}</TableCell>
-                <TableCell className="px-4 py-2">{recurring.description || "Sem Descrição"}</TableCell>
-                <TableCell className="px-4 py-2">{recurring.frequency || "-"}</TableCell>
-                <TableCell className="px-4 py-2">
-                  {recurring.validity ? new Date(recurring.validity).toLocaleDateString("pt-BR") : "-"}
-                </TableCell>
-                <TableCell className="px-4 py-2 text-center">
-                  <div className="flex gap-2 justify-center">
+
+          {/* Tabela de Despesas Fixas */}
+          <div className="p-4 bg-white shadow rounded-lg">
+            <h2 className="text-m font-semibold mb-4">Despesas Fixas</h2>
+            <div className="w-full overflow-auto">
+              <Table>
+                <TableHeader className="text-sm">
+                  <TableRow>
+                    <TableHead className="text-sm">Classe</TableHead>
+                    <TableHead className="text-sm">Valor</TableHead>
+                    <TableHead className="text-sm">Descrição</TableHead>
+                    <TableHead className="text-sm">Frequência</TableHead>
+                    <TableHead className="text-sm">Validade</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="text-xs">
+                  {recurringTransactions.map((recurring) => (
+                    <TableRow key={recurring.id}>
+                      <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>
+                      <TableCell>R${recurring.value?.toFixed(2)}</TableCell>
+                      <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
+                      <TableCell>{recurring.frequency}</TableCell>
+                      <TableCell>{new Date(recurring.validity).toLocaleDateString()}</TableCell>
+                      <TableCell className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setSelectedRecurring(recurring);
+                        setNewRecurring({
+                          class_id: recurring.class_id,
+                          value: recurring.value.toString(),
+                          description: recurring.description,
+                          frequency: recurring.frequency,
+                          validity: new Date(recurring.validity),
+                        });
+                        selectedRecurring(recurring);
                         setIsEditing(true);
                         setOpen(true);
                       }}
@@ -312,46 +359,28 @@ export default function RecurringTransactions() {
                           <Trash2 className="text-red-500" />
                         </Button>
                       </AlertDialogTrigger>
-
-                      <AlertDialogContent className="max-w-md p-6 rounded-lg shadow-lg bg-white">
-                        <AlertDialogHeader className="text-lg font-semibold text-gray-900">
-                          Tem certeza?
-                        </AlertDialogHeader>
-
-                        <p className="text-gray-600 text-sm">
-                          Esta ação não pode ser desfeita. Deseja remover esta transação?
-                        </p>
-
-                        <AlertDialogFooter className="flex justify-end gap-2 mt-4">
-                          <AlertDialogCancel
-                            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-                            onClick={() => setConfirmOpen(false)}
-                          >
+                      <AlertDialogContent>
+                        <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                        <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
                             Cancelar
                           </AlertDialogCancel>
-
-                          <AlertDialogAction
-                            className="px-4 py-2 rounded-md bg-yellow-500 text-white font-semibold hover:bg-yellow-600"
-                            onClick={() => selectedRecurring && deleteRecurring(selectedRecurring.id)}
-                            disabled={loading === recurring.id}
-                          >
+                          <AlertDialogAction onClick={deleteRecurring} disabled={loading === recurring.id}>
                             Excluir
                           </AlertDialogAction>
-
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-
-
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-
-      </div>
+                  </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
