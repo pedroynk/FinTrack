@@ -18,15 +18,15 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
-            path: "/dashboard",
+            path: "dashboard",
             element: <Dashboard />,
           },
           {
-            path: "/recurring",
+            path: "recurring",
             element: <Recurring />,
           },
           {
-            path: "/transactions",
+            path: "transactions",
             element: <Transactions />,
           },
         ],
@@ -38,7 +38,7 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
-    path: "*", // Rota para páginas não encontradas
+    path: "*",
     element: <NotFound />,
   },
 ]);
