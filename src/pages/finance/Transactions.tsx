@@ -220,7 +220,7 @@ export default function Transactions() {
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button>{isEditing ? "Editar Transação" : "Adicionar Transação"}</Button>
+                <Button>"Adicionar Transação"</Button>
               </DialogTrigger>
               <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
                 <DialogHeader>
