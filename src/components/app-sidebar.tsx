@@ -36,17 +36,16 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "/finance/dashboard",
+          url: "/dashboard", // Atualizado
         },
         {
           title: "Recorrências",
-          url: "/finance/recurring",
+          url: "/recurring", // Atualizado
         },
         {
           title: "Transações",
-          url: "/finance/transactions",
+          url: "/transactions", // Atualizado
         }
-
       ],
     },
     // {

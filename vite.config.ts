@@ -31,5 +31,5 @@ export default defineConfig({
   // Configurações de preview
   preview: {
     port: 5000, // Porta para o preview do build
-  },
+  }
 });

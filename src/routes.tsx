@@ -4,29 +4,29 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
-import Transactions from "./pages/finance/Transactions";
-import Dashboard from "./pages/finance/Dashboard";
-import Recurring from "./pages/finance/Recurring";
+import Transactions from "./pages/Transactions";
+import Dashboard from "./pages/Dashboard";
+import Recurring from "./pages/Recurring";
 
 const router = createBrowserRouter([
   {
-    path: "/", // Rota base
-    element: <ProtectedRoute />, // Protege todas as rotas internas
+    path: "/",
+    element: <ProtectedRoute />,
     children: [
       {
-        path: "/", // MainLayout é carregado aqui
+        path: "/",
         element: <MainLayout />,
         children: [
           {
-            path: "finance/dashboard", // Removido "/" inicial
+            path: "/dashboard",
             element: <Dashboard />,
           },
           {
-            path: "finance/recurring",
+            path: "/recurring",
             element: <Recurring />,
           },
           {
-            path: "finance/transactions",
+            path: "/transactions",
             element: <Transactions />,
           },
         ],
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/login", // Corrigido com "/" inicial
+    path: "/login",
     element: <Login />,
   },
   {
