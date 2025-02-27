@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
-import { Edit2, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSidebar } from "@/components/ui/sidebar";
+import { DatePicker } from "@/components/DatePicker";
+
 import {
   Dialog,
   DialogContent,
@@ -21,14 +23,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function RecurringTransactions() {
   const [open, setOpen] = useState(false);
   const { isMobile } = useSidebar();
   const { toast } = useToast();
   const [recurringTransactions, setRecurring] = useState<any[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
 
   const [loading, setLoading] = useState<string | null>(null);
   const [fixedTotal, setFixedTotal] = useState(0);
@@ -117,47 +118,6 @@ export default function RecurringTransactions() {
     }
   }
 
-  async function updateRecurring() {
-    if (!selectedRecurring) return;
-
-    const { error } = await supabase
-      .from("recurring_transaction")
-      .update({
-        ...newRecurring,
-        value: parseFloat(newRecurring.value),
-        validity: newRecurring.validity ? newRecurring.validity : null,
-      })
-      .match({ id: selectedRecurring.id });
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: `Falha ao atualizar Recorrência: ${error.message}`,
-        variant: "destructive",
-        duration: 2000,
-      });
-    } else {
-      toast({
-        title: "Sucesso",
-        description: "Recorrência atualizada com sucesso!",
-        duration: 2000,
-      });
-
-      fetchRecurringTransactions();
-      setOpen(false);
-      setIsEditing(false);
-      setSelectedRecurring(null);
-
-      setNewRecurring({
-        class_id: "",
-        value: "",
-        description: "",
-        frequency: "",
-        validity: null,
-      });
-    }
-  }
-
   async function deleteRecurring() {
     if (!selectedRecurring) return;
 
@@ -224,7 +184,6 @@ export default function RecurringTransactions() {
                       frequency: "",
                       validity: null,
                     });
-                    setIsEditing(false);
                     setSelectedRecurring(null);
                   }
                   setOpen(isOpen);
@@ -235,7 +194,7 @@ export default function RecurringTransactions() {
                 </DialogTrigger>
                 <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
                   <DialogHeader>
-                    <DialogTitle>{isEditing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
+                    <DialogTitle>Nova Recorrência</DialogTitle>
                   </DialogHeader>
                   <div className="grid grid-cols-1 gap-4">
                     <Label>Classe</Label>
@@ -297,20 +256,16 @@ export default function RecurringTransactions() {
                     </Select>
                     <Label>Data</Label>
                     <DatePicker
-                      selected={newRecurring.validity ?? undefined}
-                      onChange={(date) =>
+                      selectedDate={newRecurring.validity ?? undefined}
+                      onSelect={(date) =>
                         setNewRecurring({
                           ...newRecurring,
-                          validity: date || null,
+                          validity: date ?? null,
                         })
                       }
-                      isClearable
-                      placeholderText="Selecione uma data"
                     />
 
-                    <Button onClick={isEditing ? updateRecurring : createRecurring}>
-                      {isEditing ? "Atualizar" : "Salvar"}
-                    </Button>
+                    <Button onClick={createRecurring}>Salvar</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -338,26 +293,9 @@ export default function RecurringTransactions() {
                       <TableCell>R${recurring.value?.toFixed(2)}</TableCell>
                       <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
                       <TableCell>{recurring.frequency}</TableCell>
-                      <TableCell>{new Date(recurring.validity).toLocaleDateString()}</TableCell>
+                      <TableCell>{recurring.validity || "Sem Validade"}</TableCell>
                       <TableCell className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setNewRecurring({
-                              class_id: recurring.class_id,
-                              value: recurring.value.toString(),
-                              description: recurring.description,
-                              frequency: recurring.frequency,
-                              validity: new Date(recurring.validity),
-                            });
-                            setSelectedRecurring(recurring);
-                            setIsEditing(true);
-                            setOpen(true);
-                          }}
-                        >
-                          <Edit2 className="text-blue-500" />
-                        </Button>
+
                         <AlertDialog
                           open={confirmOpen && selectedRecurring?.id === recurring.id}
                           onOpenChange={setConfirmOpen}

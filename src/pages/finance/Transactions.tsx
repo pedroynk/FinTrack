@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/DatePicker";
 import {
   Table,
   TableBody,
@@ -36,7 +37,6 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSidebar } from "@/components/ui/sidebar";
 
@@ -130,7 +130,7 @@ export default function Transactions() {
 
   async function updateTransaction() {
     if (!selectedTransaction) return;
-  
+
     const { error } = await supabase
       .from("transaction")
       .update({
@@ -138,7 +138,7 @@ export default function Transactions() {
         value: parseFloat(newTransaction.value),
       })
       .match({ id: selectedTransaction.id });
-  
+
     if (error) {
       toast({
         title: "Erro",
@@ -152,12 +152,12 @@ export default function Transactions() {
         description: "Transação atualizada com sucesso!",
         duration: 2000,
       });
-  
+
       fetchTransactions();
       setOpen(false);
       setIsEditing(false);
       setSelectedTransaction(null);
-  
+
       setNewTransaction({
         nature_id: "",
         value: "",
@@ -167,7 +167,7 @@ export default function Transactions() {
       });
     }
   }
-  
+
 
   async function deleteTransaction() {
     if (!selectedTransaction) return;
@@ -315,14 +315,16 @@ export default function Transactions() {
                   />
                   <Label>Data</Label>
                   <DatePicker
-                    selected={newTransaction.date}
+                    selectedDate={newTransaction.date}
                     onSelect={(date) =>
                       setNewTransaction({
                         ...newTransaction,
-                        date: date || new Date(),
+                        date: date ?? new Date(),
                       })
                     }
                   />
+
+
                   <Button onClick={isEditing ? updateTransaction : createTransaction}>
                     {isEditing ? "Atualizar" : "Salvar"}
                   </Button>
@@ -356,8 +358,7 @@ export default function Transactions() {
                   <TableCell>{transaction.class?.name || 'Sem Classe'}</TableCell>
                   <TableCell className="text-left">R$ {transaction.value?.toFixed(2) || '0.00'}</TableCell>
                   <TableCell>{transaction.description || 'Sem Descrição'}</TableCell>
-                  <TableCell>
-                    {new Date(transaction.date).toLocaleDateString()}</TableCell>
+                  <TableCell>{transaction.date}</TableCell>
                   <TableCell className="flex gap-2">
                     <Button
                       variant="ghost"
