@@ -87,19 +87,29 @@ export default function TransactionsAnalytics() {
 
   function processAnalytics(data: any[]) {
     const expensesByDateMap: { [key: string]: number } = {};
+    const incomeByDateMap: { [key: string]: number } = {};
     const expensesByClassMap: { [key: string]: number } = {};
 
     data.forEach((transaction) => {
+      const dateKey = new Date(transaction.date).toLocaleDateString("pt-BR");
       if (transaction.nature?.name === "Despesa") {
-        const dateKey = new Date(transaction.date).toLocaleDateString("pt-BR");
         expensesByDateMap[dateKey] = (expensesByDateMap[dateKey] || 0) + transaction.value;
+      } else if (transaction.nature?.name === "Receita") {
+        incomeByDateMap[dateKey] = (incomeByDateMap[dateKey] || 0) + transaction.value;
+      }
 
+      if (transaction.nature?.name === "Despesa") {
         const className = transaction.class?.name || "Sem Classe";
         expensesByClassMap[className] = (expensesByClassMap[className] || 0) + transaction.value;
       }
     });
 
-    const dateData = Object.entries(expensesByDateMap).map(([date, value]) => ({ date, value }));
+    const dateData = Object.keys(expensesByDateMap).map((date) => ({
+      date,
+      value: expensesByDateMap[date] || 0,
+      income: incomeByDateMap[date] || 0,
+    }));
+
     const classData = Object.entries(expensesByClassMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
@@ -234,6 +244,7 @@ export default function TransactionsAnalytics() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Gráfico de Linha - Despesas por Data */}
+            {/* Gráfico de Linha - Movimentações por Data */}
             <div className="p-4 bg-white shadow rounded-lg">
               <h2 className="text-m font-semibold mb-4">Movimentações por Data</h2>
               <ResponsiveContainer width="100%" height={270}>
@@ -242,10 +253,12 @@ export default function TransactionsAnalytics() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Area type="monotone" dataKey="value" stroke="#1D262D" fill="#1D262D" name="Valor (R$)" />
+                  <Area type="monotone" dataKey="value" stroke="#ec5353" fill="#ec5353" name="Despesas (R$)" />
+                  <Area type="monotone" dataKey="income" stroke="#4CAF50" fill="#4CAF50" name="Receitas (R$)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
 
             {/* Gráfico de Barra - Principais Classes de Gasto */}
             <div className="p-4 bg-white shadow rounded-lg">
