@@ -39,10 +39,6 @@ const data = {
           url: "/finance/dashboard", // Atualizado
         },
         {
-          title: "Investimentos",
-          url: "/finance/investments", // Atualizado
-        },
-        {
           title: "Recorrências",
           url: "/finance/recurring", // Atualizado
         },

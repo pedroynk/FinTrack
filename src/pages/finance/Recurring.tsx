@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/lib/supabase";
 import { Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSidebar } from "@/components/ui/sidebar";
 import { DatePicker } from "@/components/DatePicker";
 
 import {
@@ -27,7 +26,6 @@ import "react-datepicker/dist/react-datepicker.css";
 
 export default function RecurringTransactions() {
   const [open, setOpen] = useState(false);
-  const { isMobile } = useSidebar();
   const { toast } = useToast();
   const [recurringTransactions, setRecurring] = useState<any[]>([]);
 
@@ -160,18 +158,18 @@ export default function RecurringTransactions() {
         <div className="space-y-6">
           {/* Cards de Totais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-white shadow rounded-lg">
+            <div className="p-4 bg-red-300 shadow rounded-lg">
               <h3 className="text-lg font-semibold">Despesas Fixas</h3>
-              <p className="text-2xl font-bold text-red-500">R${fixedTotal.toFixed(2)}</p>
+              <p className="text-2xl font-bold">R${fixedTotal.toFixed(2)}</p>
             </div>
-            <div className="p-4 bg-white shadow rounded-lg">
+            <div className="p-4 bg-blue-300 shadow rounded-lg">
               <h3 className="text-lg font-semibold">Assinaturas</h3>
-              <p className="text-2xl font-bold text-blue-500">R${subscriptionTotal.toFixed(2)}</p>
+              <p className="text-2xl font-bold">R${subscriptionTotal.toFixed(2)}</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-4">
-            <h1 className="text-2xl font-bold">Transações</h1>
+            <h1 className="text-2xl font-bold">Transações Recorrentes</h1>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Dialog
                 open={open}
@@ -286,7 +284,7 @@ export default function RecurringTransactions() {
                     <TableHead className="text-sm">Validade</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="text-xs">
+                <TableBody className="text-sm">
                   {recurringTransactions.map((recurring) => (
                     <TableRow key={recurring.id}>
                       <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>

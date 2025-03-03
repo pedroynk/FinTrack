@@ -5,6 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+
+const months = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
 export default function TransactionsAnalytics() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -14,17 +19,14 @@ export default function TransactionsAnalytics() {
   const [expensesByClass, setExpensesByClass] = useState<any[]>([]);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [totalIncome, setTotalIncome] = useState<number>(0);
-
-  // Estados para os filtros
-  const [selectedYear, setSelectedYear] = useState<string>("Todos");
-  const [selectedMonth, setSelectedMonth] = useState<string>("Todos");
-  const [selectedDay, setSelectedDay] = useState<string>("Todos");
-  const [selectedClass, setSelectedClass] = useState<string>("Todos");
-  const [selectedNature, setSelectedNature] = useState<string>("Todos");
-
-  // Estado para paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 17;
+
+  const [yearFilter, setYearFilter] = useState("");
+  const [monthFilter, setMonthFilter] = useState("");
+  const [dayFilter, setDayFilter] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [natureFilter, setNatureFilter] = useState("");
 
   useEffect(() => {
     fetchTransactions();
@@ -32,7 +34,7 @@ export default function TransactionsAnalytics() {
 
   useEffect(() => {
     applyFilters();
-  }, [transactions, selectedYear, selectedMonth, selectedDay, selectedClass, selectedNature]);
+  }, [transactions, yearFilter, monthFilter, dayFilter, classFilter, natureFilter]);
 
   async function fetchTransactions() {
     setLoading(true);
@@ -56,42 +58,14 @@ export default function TransactionsAnalytics() {
     setLoading(false);
   }
 
-  function applyFilters() {
-    let filtered = transactions;
-
-    if (selectedYear !== "Todos") {
-      filtered = filtered.filter((t) => new Date(t.date).getFullYear().toString() === selectedYear);
-    }
-
-    if (selectedMonth !== "Todos") {
-      filtered = filtered.filter((t) => (new Date(t.date).getMonth() + 1).toString() === selectedMonth);
-    }
-
-    if (selectedDay !== "Todos") {
-      filtered = filtered.filter((t) => new Date(t.date).getDate().toString() === selectedDay);
-    }
-
-    if (selectedClass !== "Todos") {
-      filtered = filtered.filter((t) => t.class?.name === selectedClass);
-    }
-
-    if (selectedNature !== "Todos") {
-      filtered = filtered.filter((t) => t.nature?.name === selectedNature);
-    }
-
-    setFilteredTransactions(filtered);
-    processAnalytics(filtered);
-    calculateTotals(filtered);
-    setCurrentPage(1); // Resetar para a primeira página ao aplicar filtros
-  }
-
   function processAnalytics(data: any[]) {
     const expensesByDateMap: { [key: string]: number } = {};
     const incomeByDateMap: { [key: string]: number } = {};
     const expensesByClassMap: { [key: string]: number } = {};
 
     data.forEach((transaction) => {
-      const dateKey = new Date(transaction.date).toLocaleDateString("pt-BR");
+      const date = new Date(transaction.date);
+      const dateKey = `${months[date.getUTCMonth()]}`;
       if (transaction.nature?.name === "Despesa") {
         expensesByDateMap[dateKey] = (expensesByDateMap[dateKey] || 0) + transaction.value;
       } else if (transaction.nature?.name === "Receita") {
@@ -131,12 +105,19 @@ export default function TransactionsAnalytics() {
     setTotalIncome(totalIncome);
   }
 
-  // Gerar opções únicas para ano, mês, dia, classe e natureza
-  const uniqueYears = Array.from(new Set(transactions.map((t) => new Date(t.date).getFullYear().toString())));
-  const uniqueMonths = Array.from(new Set(transactions.map((t) => (new Date(t.date).getMonth() + 1).toString())));
-  const uniqueDays = Array.from(new Set(transactions.map((t) => new Date(t.date).getDate().toString())));
-  const uniqueClasses = Array.from(new Set(transactions.map((t) => t.class?.name))).filter(Boolean);
-  const uniqueNatures = Array.from(new Set(transactions.map((t) => t.nature?.name))).filter(Boolean);
+  function applyFilters() {
+    let filtered = [...transactions];
+    if (yearFilter) filtered = filtered.filter(t => new Date(t.date).getUTCFullYear().toString() === yearFilter);
+    if (monthFilter) filtered = filtered.filter(t => (new Date(t.date).getUTCMonth()).toString() === monthFilter);
+    if (dayFilter) filtered = filtered.filter(t => new Date(t.date).getUTCDate().toString() === dayFilter);
+    if (classFilter) filtered = filtered.filter(t => t.class?.name === classFilter);
+    if (natureFilter) filtered = filtered.filter(t => t.nature?.name === natureFilter);
+
+    setFilteredTransactions(filtered);
+    processAnalytics(filtered);
+    calculateTotals(filtered);
+    setCurrentPage(1);
+  }
 
   // Paginação
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -146,6 +127,64 @@ export default function TransactionsAnalytics() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+  {/* Ano */}
+  <div>
+    <label htmlFor="yearFilter" className="block text-sm font-medium mb-1">Ano</label>
+    <select id="yearFilter" value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="p-2 border rounded w-full">
+      <option value="">Todos</option>
+      {[...new Set(transactions.map(t => new Date(t.date).getFullYear()))].map(year => (
+        <option key={year} value={year}>{year}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* Mês */}
+  <div>
+    <label htmlFor="monthFilter" className="block text-sm font-medium mb-1">Mês</label>
+    <select id="monthFilter" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="p-2 border rounded w-full">
+      <option value="">Todos</option>
+      {months.map((month, index) => (
+        <option key={index} value={index.toString()}>{month}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* Dia */}
+  <div>
+    <label htmlFor="dayFilter" className="block text-sm font-medium mb-1">Dia</label>
+    <select id="dayFilter" value={dayFilter} onChange={(e) => setDayFilter(e.target.value)} className="p-2 border rounded w-full">
+      <option value="">Todos</option>
+      {[...Array(31)].map((_, i) => (
+        <option key={i} value={(i + 1).toString()}>{i + 1}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* Classe */}
+  <div>
+    <label htmlFor="classFilter" className="block text-sm font-medium mb-1">Classe</label>
+    <select id="classFilter" value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="p-2 border rounded w-full">
+      <option value="">Todos</option>
+      {[...new Set(transactions.map(t => t.class?.name).filter(Boolean))].map(cl => (
+        <option key={cl} value={cl}>{cl}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* Natureza */}
+  <div>
+    <label htmlFor="natureFilter" className="block text-sm font-medium mb-1">Tipo</label>
+    <select id="natureFilter" value={natureFilter} onChange={(e) => setNatureFilter(e.target.value)} className="p-2 border rounded w-full">
+      <option value="">Todos</option>
+      {[...new Set(transactions.map(t => t.nature?.name).filter(Boolean))].map(nat => (
+        <option key={nat} value={nat}>{nat}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
+
       {/* Cards Totais */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-green-100 shadow rounded-lg">
@@ -158,84 +197,6 @@ export default function TransactionsAnalytics() {
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-4 justify-left mb-6">
-        {/* Filtro de Natureza */}
-        <div className="flex flex-col items-start">
-          <label className="block text-xs font-medium">Tipo</label>
-          <select
-            value={selectedNature}
-            onChange={(e) => setSelectedNature(e.target.value)}
-            className="border rounded p-1 text-sm w-32"
-          >
-            <option value="Todos">Todas</option>
-            {uniqueNatures.map((nature) => (
-              <option key={nature} value={nature}>{nature}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro de Classe */}
-        <div className="flex flex-col items-start">
-          <label className="block text-xs font-medium">Classe</label>
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="border rounded p-1 text-sm w-32"
-          >
-            <option value="Todos">Todas</option>
-            {uniqueClasses.map((cls) => (
-              <option key={cls} value={cls}>{cls}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro de Ano */}
-        <div className="flex flex-col items-start">
-          <label className="block text-xs font-medium">Ano</label>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="border rounded p-1 text-sm w-24"
-          >
-            <option value="Todos">Todos</option>
-            {uniqueYears.map((year) => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro de Mês */}
-        <div className="flex flex-col items-start">
-          <label className="block text-xs font-medium">Mês</label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border rounded p-1 text-sm w-20"
-          >
-            <option value="Todos">Todos</option>
-            {uniqueMonths.map((month) => (
-              <option key={month} value={month}>{month.padStart(2, "0")}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro de Dia */}
-        <div className="flex flex-col items-start">
-          <label className="block text-xs font-medium">Dia</label>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value)}
-            className="border rounded p-1 text-sm w-20"
-          >
-            <option value="Todos">Todos</option>
-            {uniqueDays.map((day) => (
-              <option key={day} value={day}>{day.padStart(2, "0")}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="animate-spin" />
@@ -243,8 +204,6 @@ export default function TransactionsAnalytics() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Gráfico de Linha - Despesas por Data */}
-            {/* Gráfico de Linha - Movimentações por Data */}
             <div className="p-4 bg-white shadow rounded-lg">
               <h2 className="text-m font-semibold mb-4">Movimentações por Data</h2>
               <ResponsiveContainer width="100%" height={270}>
@@ -302,7 +261,7 @@ export default function TransactionsAnalytics() {
                     })
                     .map((transaction) => (
                       <TableRow key={transaction.id}>
-                        <TableCell>{new Date(transaction.date).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>{transaction.date}</TableCell>
                         <TableCell>{transaction.nature?.name || "Sem Tipo"}</TableCell>
                         <TableCell>{transaction.class?.name || "Sem Classe"}</TableCell>
                         <TableCell>R${transaction.value?.toFixed(2)}</TableCell>
