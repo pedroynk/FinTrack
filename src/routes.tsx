@@ -7,6 +7,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Transactions from "./pages/finance/Transactions";
 import Dashboard from "./pages/finance/Dashboard";
 import Recurring from "./pages/finance/Recurring";
+import Investments from "./pages/finance/Investments";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
               {
                 path: "dashboard",
                 element: <Dashboard />,
+              },
+              {
+                path: "investments",
+                element: <Investments />,
               },
               {
                 path: "recurring",
