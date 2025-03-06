@@ -26,8 +26,19 @@ export default function Investments() {
     const [types, setTypes] = useState<any[]>([]);
     const [brokers, setBrokers] = useState<any[]>([]);
     const [incomes, setIncomes] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [openType, setOpenType] = useState(false);
+    const [openRentability, setOpenRentability] = useState(false);
+    const [newRentability, setNewRentability] = useState({
+        rentability: "",
+        investment_name: "",
+        date: new Date(),
+    });
+    const [newType, setNewType] = useState({
+        name: "",
+        value_yield: "",
+        base_yield: "",
+    });
     const [newInvestment, setNewInvestment] = useState({
         type_id: "",
         broker_id: "",
@@ -47,9 +58,17 @@ export default function Investments() {
     }, []);
 
     const fetchInvestments = async () => {
-        const { data } = await supabase.from("investment").select("*");
-        setInvestments(data || []);
+        const { data, error } = await supabase
+            .from("investment")
+            .select("*");
+    
+        if (error) {
+            console.error("Erro ao buscar investimentos:", error.message);
+        } else {
+            setInvestments(data || []);
+        }
     };
+    
 
     const fetchTypes = async () => {
         const { data, error } = await supabase.from("investment_type").select("*");
@@ -86,14 +105,14 @@ export default function Investments() {
         if (error) {
             toast({
                 title: "Erro",
-                description: `Falha ao adicionar transação: ${error.message}`,
+                description: `Falha ao adicionar Investimento: ${error.message}`,
                 variant: "destructive",
                 duration: 2000,
             });
         } else {
             toast({
                 title: "Sucesso",
-                description: "Transação adicionada com sucesso!",
+                description: "Investimento adicionado com sucesso!",
                 duration: 2000,
             });
             fetchInvestments();
@@ -101,9 +120,64 @@ export default function Investments() {
         }
     }
 
+    async function createType() {
+        const { error } = await supabase.from("investment_type").insert([
+            {
+                ...newType,
+                value_yield: parseFloat(newType.value_yield),
+            },
+        ]);
+
+        if (error) {
+            toast({
+                title: "Erro",
+                description: `Falha ao adicionar Tipo de Investimento: ${error.message}`,
+                variant: "destructive",
+                duration: 2000,
+            });
+        } else {
+            toast({
+                title: "Sucesso",
+                description: "Tipo de Investimento adicionado com sucesso!",
+                duration: 2000,
+            });
+            fetchTypes();
+            setOpenType(false);
+        }
+    }
+
+    async function createRentability() {
+        const { error } = await supabase.from("investment_rentability").insert([
+            {
+                ...newRentability,
+                rentability: parseFloat(newRentability.rentability),
+            },
+        ]);
+
+        if (error) {
+            toast({
+                title: "Erro",
+                description: `Falha ao adicionar Rentabilidade do Investimento: ${error.message}`,
+                variant: "destructive",
+                duration: 2000,
+            });
+        } else {
+            toast({
+                title: "Sucesso",
+                description: "Rentabilidade do Investimento adicionado com sucesso!",
+                duration: 2000,
+            });
+            fetchTypes();
+            setOpenRentability(false);
+
+        }
+    }
+
     return (
         <div className="p-4">
             <h1 className="text-xl font-bold mb-4">Investimentos</h1>
+
+            {/* Dialog para adicionar investimento */}
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button>Adicionar Investimento</Button>
@@ -120,6 +194,7 @@ export default function Investments() {
                                 setNewInvestment({ ...newInvestment, date: date ?? new Date() })
                             }
                         />
+
                         <Label>Movimento</Label>
                         <Select
                             onValueChange={(value) =>
@@ -144,6 +219,7 @@ export default function Investments() {
                                 )}
                             </SelectContent>
                         </Select>
+
                         <Label>Valor</Label>
                         <Input
                             type="number"
@@ -153,6 +229,7 @@ export default function Investments() {
                                 setNewInvestment({ ...newInvestment, value: e.target.value })
                             }
                         />
+
                         <Label>Investimento</Label>
                         <Select
                             onValueChange={(value) =>
@@ -177,6 +254,7 @@ export default function Investments() {
                                 )}
                             </SelectContent>
                         </Select>
+
                         <Label>Descrição</Label>
                         <Input
                             type="text"
@@ -185,6 +263,7 @@ export default function Investments() {
                                 setNewInvestment({ ...newInvestment, description: e.target.value })
                             }
                         />
+
                         <Label>Corretora</Label>
                         <Select
                             onValueChange={(value) =>
@@ -209,6 +288,7 @@ export default function Investments() {
                                 )}
                             </SelectContent>
                         </Select>
+
                         <Label>Tipo de Renda</Label>
                         <Select
                             onValueChange={(value) =>
@@ -233,7 +313,88 @@ export default function Investments() {
                                 )}
                             </SelectContent>
                         </Select>
+
                         <Button onClick={createInvestment}>Salvar</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog para adicionar tipo de investimento */}
+            <Dialog open={openType} onOpenChange={setOpenType}>
+                <DialogTrigger asChild>
+                    <Button>Adicionar Tipo de Investimento</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                    <DialogHeader>
+                        <DialogTitle>Novo Tipo de Investimento</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 gap-4">
+                        <Label>Tipo de Investimento</Label>
+                        <Input
+                            type="text"
+                            value={newType.name}
+                            onChange={(e) =>
+                                setNewType({ ...newType, name: e.target.value })
+                            }
+                        />
+
+                        <Label>Valor Rendimento/Dividendo</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            value={newType.value_yield}
+                            onChange={(e) =>
+                                setNewType({ ...newType, value_yield: e.target.value })
+                            }
+                        />
+
+                        <Label>Base de Retorno</Label>
+                        <Input
+                            type="text"
+                            value={newType.base_yield}
+                            onChange={(e) =>
+                                setNewType({ ...newType, base_yield: e.target.value })
+                            }
+                        />
+
+                        <Button onClick={createType}>Salvar</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={openRentability} onOpenChange={setOpenRentability}>
+                <DialogTrigger asChild>
+                    <Button>Adicionar Rentabilidade</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                    <DialogHeader>
+                        <DialogTitle>Cadastrar Rentabilidade</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 gap-4">
+                        <Label>Investimento</Label>
+                        <Input
+                            type="text"
+                            value={newRentability.investment_name}
+                            onChange={(e) =>
+                                setNewRentability({ ...newRentability, investment_name: e.target.value })
+                            }
+                        />
+                        <Label>Rentabilidade</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            value={newRentability.rentability}
+                            onChange={(e) =>
+                                setNewRentability({ ...newRentability, rentability: e.target.value })
+                            }
+                        />
+                        <DatePicker
+                            selectedDate={newRentability.date}
+                            onSelect={(date) =>
+                                setNewRentability({ ...newRentability, date: date ?? new Date() })
+                            }
+                        />
+                        <Button onClick={createRentability}>Salvar</Button>
                     </div>
                 </DialogContent>
             </Dialog>
