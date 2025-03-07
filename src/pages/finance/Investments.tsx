@@ -49,7 +49,8 @@ export default function Investments() {
         withdrawal_value: "",
         contribution_value: "",
         rentability: "",
-        date: new Date(),
+        initial_date: new Date(),
+        final_date: new Date(),
     });
     const [newType, setNewType] = useState({
         income_id: "",
@@ -176,28 +177,49 @@ export default function Investments() {
     }
 
     async function createRentability() {
-        const initialValue = parseFloat(newRentability.initial_value);
-        const finalValue = parseFloat(newRentability.final_value);
-        const withdrawalValue = parseFloat(newRentability.withdrawal_value);
-        const contributionValue = parseFloat(newRentability.contribution_value);
+        let initialValue = parseFloat(newRentability.initial_value);
+        let finalValue = parseFloat(newRentability.final_value);
+        let withdrawalValue = parseFloat(newRentability.withdrawal_value);
+        let contributionValue = parseFloat(newRentability.contribution_value);
     
-        if (isNaN(initialValue) || isNaN(finalValue) || initialValue === 0) {
+        if (isNaN(initialValue)) {
+            initialValue = 0;
+        }
+        if (isNaN(finalValue)) {
+            finalValue = 0;
+        }
+        if (isNaN(withdrawalValue)) {
+            withdrawalValue = 0;
+        }
+        if (isNaN(contributionValue)) {
+            contributionValue = 0;
+        }
+    
+        if (initialValue === 0 || finalValue === 0) {
             toast({
                 title: "Erro",
-                description: "Valores inválidos. Certifique-se de preencher corretamente.",
+                description: "Os valores iniciais e finais são obrigatórios.",
                 variant: "destructive",
                 duration: 2000,
             });
             return;
         }
-        
-        const adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
+    
+        let adjustedInitialValue = initialValue;
+        if (contributionValue !== 0 || withdrawalValue !== 0) {
+            adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
+        }
+    
         const rentability = ((finalValue - adjustedInitialValue) / adjustedInitialValue) * 100;
-
+    
         const { error } = await supabase.from("investment_rentability").insert([
             {
                 ...newRentability,
                 rentability: rentability,
+                initial_value: initialValue,
+                final_value: finalValue,
+                withdrawal_value: withdrawalValue,
+                contribution_value: contributionValue,
             },
         ]);
     
@@ -219,7 +241,6 @@ export default function Investments() {
             setOpenRentability(false);
         }
     }
-    
 
     async function fetchInvestmentDistribution() {
         const { data: investments, error: invError } = await supabase
@@ -675,11 +696,18 @@ export default function Investments() {
                                 setNewRentability({ ...newRentability, withdrawal_value: e.target.value })
                             }
                         />
-                        <Label>Data</Label>
+                        <Label>Data Inicial</Label>
                         <DatePicker
-                            selectedDate={newRentability.date}
+                            selectedDate={newRentability.initial_date}
                             onSelect={(date) =>
-                                setNewRentability({ ...newRentability, date: date ?? new Date() })
+                                setNewRentability({ ...newRentability, initial_date: date ?? new Date() })
+                            }
+                        />
+                        <Label>Data Final</Label>
+                        <DatePicker
+                            selectedDate={newRentability.final_date}
+                            onSelect={(date) =>
+                                setNewRentability({ ...newRentability, final_date: date ?? new Date() })
                             }
                         />
                         <Button onClick={createRentability}>Salvar</Button>
