@@ -43,8 +43,12 @@ export default function Investments() {
         return colors[index % colors.length];
     };
     const [newRentability, setNewRentability] = useState({
+        type_id: "",
+        initial_value: "",
+        final_value: "",
+        withdrawal_value: "",
+        contribution_value: "",
         rentability: "",
-        investment_name: "",
         date: new Date(),
     });
     const [newType, setNewType] = useState({
@@ -172,13 +176,31 @@ export default function Investments() {
     }
 
     async function createRentability() {
+        const initialValue = parseFloat(newRentability.initial_value);
+        const finalValue = parseFloat(newRentability.final_value);
+        const withdrawalValue = parseFloat(newRentability.withdrawal_value);
+        const contributionValue = parseFloat(newRentability.contribution_value);
+    
+        if (isNaN(initialValue) || isNaN(finalValue) || initialValue === 0) {
+            toast({
+                title: "Erro",
+                description: "Valores inválidos. Certifique-se de preencher corretamente.",
+                variant: "destructive",
+                duration: 2000,
+            });
+            return;
+        }
+        
+        const adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
+        const rentability = ((finalValue - adjustedInitialValue) / adjustedInitialValue) * 100;
+
         const { error } = await supabase.from("investment_rentability").insert([
             {
                 ...newRentability,
-                rentability: parseFloat(newRentability.rentability),
+                rentability: rentability,
             },
         ]);
-
+    
         if (error) {
             toast({
                 title: "Erro",
@@ -189,14 +211,15 @@ export default function Investments() {
         } else {
             toast({
                 title: "Sucesso",
-                description: "Rentabilidade do Investimento adicionado com sucesso!",
+                description: "Rentabilidade do Investimento adicionada com sucesso!",
                 duration: 2000,
             });
+    
             fetchTypes();
             setOpenRentability(false);
-
         }
     }
+    
 
     async function fetchInvestmentDistribution() {
         const { data: investments, error: invError } = await supabase
@@ -309,7 +332,6 @@ export default function Investments() {
     }
 
     async function fetchMovements() {
-        // 🔹 1. Buscar movimentos de investimento
         const { data, error } = await supabase
             .from("investment_movement")
             .select("date, value, nature_id, type_id");
@@ -597,23 +619,63 @@ export default function Investments() {
                         <DialogTitle>Cadastrar Rentabilidade</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-1 gap-4">
-                        <Label>Investimento</Label>
-                        <Input
-                            type="text"
-                            value={newRentability.investment_name}
-                            onChange={(e) =>
-                                setNewRentability({ ...newRentability, investment_name: e.target.value })
+                    <Label>Investimento</Label>
+                        <Select
+                            onValueChange={(value) =>
+                                setNewRentability({ ...newRentability, type_id: value })
                             }
-                        />
-                        <Label>Rentabilidade</Label>
+                            value={newRentability.type_id}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione o Investimento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {types.length > 0 ? (
+                                    types.map((t) => (
+                                        <SelectItem key={t.id} value={t.id.toString()}>
+                                            {t.description}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>
+                                        Nenhum tipo encontrado
+                                    </SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
+                        <Label>Valor Inicial no Período</Label>
                         <Input
                             type="number"
-                            min="1"
-                            value={newRentability.rentability}
+                            value={newRentability.initial_value}
                             onChange={(e) =>
-                                setNewRentability({ ...newRentability, rentability: e.target.value })
+                                setNewRentability({ ...newRentability, initial_value: e.target.value })
                             }
                         />
+                        <Label>Valor Final no Período</Label>
+                        <Input
+                            type="number"
+                            value={newRentability.final_value}
+                            onChange={(e) =>
+                                setNewRentability({ ...newRentability, final_value: e.target.value })
+                            }
+                        />
+                        <Label>Aportes no Período (Se houver)</Label>
+                        <Input
+                            type="number"
+                            value={newRentability.contribution_value}
+                            onChange={(e) =>
+                                setNewRentability({ ...newRentability, contribution_value: e.target.value })
+                            }
+                        />
+                        <Label>Saques no Período (Se houver)</Label>
+                        <Input
+                            type="number"
+                            value={newRentability.withdrawal_value}
+                            onChange={(e) =>
+                                setNewRentability({ ...newRentability, withdrawal_value: e.target.value })
+                            }
+                        />
+                        <Label>Data</Label>
                         <DatePicker
                             selectedDate={newRentability.date}
                             onSelect={(date) =>
