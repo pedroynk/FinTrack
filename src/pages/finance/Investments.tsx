@@ -19,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function Investments() {
@@ -32,9 +32,9 @@ export default function Investments() {
     const [open, setOpen] = useState(false);
     const [openType, setOpenType] = useState(false);
     const [lineChartData, setLineChartData] = useState<Record<string, any>[]>([]);
-    const [investmentNames, setInvestmentNames] = useState<string[]>([]);
     const [openRentability, setOpenRentability] = useState(false);
     const [pieChartData, setPieChartData] = useState<{ name: string; value: number }[]>([]);
+    const [barChartData, setBarChartData] = useState<{ description: string; totalRentability: number }[]>([]);
     const [incomeChartData, setIncomeChartData] = useState<{ name: string; value: number }[]>([]);
     const [movements, setMovements] = useState<{ date: string; value: number; movement: string; description: string; }[]>([]);
     const COLORS = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2"];
@@ -69,6 +69,8 @@ export default function Investments() {
         description: "",
     });
     const [investmentsGeral, setInvestmentsGeral] = useState<{
+        name: string;
+        income_name: string;
         description: string;
         totalValue: number;
         broker: string;
@@ -85,6 +87,7 @@ export default function Investments() {
         fetchRentabilityOverTime();
         fetchMovements();
         fetchInvestmentSummary();
+        fetchTopInvestments();
     }, []);
 
     const fetchInvestments = async () => {
@@ -98,7 +101,6 @@ export default function Investments() {
             setInvestments(data || []);
         }
     };
-
 
     const fetchTypes = async () => {
         const { data, error } = await supabase.from("investment_type").select("*");
@@ -181,7 +183,7 @@ export default function Investments() {
         let finalValue = parseFloat(newRentability.final_value);
         let withdrawalValue = parseFloat(newRentability.withdrawal_value);
         let contributionValue = parseFloat(newRentability.contribution_value);
-    
+
         if (isNaN(initialValue)) {
             initialValue = 0;
         }
@@ -194,7 +196,7 @@ export default function Investments() {
         if (isNaN(contributionValue)) {
             contributionValue = 0;
         }
-    
+
         if (initialValue === 0 || finalValue === 0) {
             toast({
                 title: "Erro",
@@ -204,14 +206,13 @@ export default function Investments() {
             });
             return;
         }
-    
+
         let adjustedInitialValue = initialValue;
         if (contributionValue !== 0 || withdrawalValue !== 0) {
             adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
         }
-    
+
         const rentability = ((finalValue - adjustedInitialValue) / adjustedInitialValue) * 100;
-    
         const { error } = await supabase.from("investment_rentability").insert([
             {
                 ...newRentability,
@@ -222,7 +223,7 @@ export default function Investments() {
                 contribution_value: contributionValue,
             },
         ]);
-    
+
         if (error) {
             toast({
                 title: "Erro",
@@ -236,7 +237,7 @@ export default function Investments() {
                 description: "Rentabilidade do Investimento adicionada com sucesso!",
                 duration: 2000,
             });
-    
+
             fetchTypes();
             setOpenRentability(false);
         }
@@ -321,35 +322,50 @@ export default function Investments() {
     async function fetchRentabilityOverTime() {
         const { data, error } = await supabase
             .from("investment_rentability")
-            .select("investment_name, rentability, date");
-
+            .select("rentability, initial_date, final_date");
         if (error) {
             console.error("Erro ao buscar rentabilidade por tempo:", error.message);
-        } else {
-            const formattedData = data.map(item => ({
-                month: new Date(item.date).toLocaleString("pt-BR", { month: "short", year: "numeric" }),
-                investment: item.investment_name,
-                rentability: item.rentability,
-            }));
-
-            const groupedData = formattedData.reduce<Record<string, any>[]>((acc, item) => {
-                let existing = acc.find(d => d.month === item.month);
-
-                if (!existing) {
-                    existing = { month: item.month };
-                    acc.push(existing);
-                }
-
-                existing[item.investment] = item.rentability;
-
-                return acc;
-            }, []);
-
-            const uniqueInvestments = [...new Set(data.map(item => item.investment_name))];
-
-            setLineChartData(groupedData);
-            setInvestmentNames(uniqueInvestments);
+            return;
         }
+        const groupedData: { month: string; totalRentability: number }[] = [];
+        data.forEach(item => {
+            const startDate = new Date(item.initial_date);
+            const endDate = new Date(item.final_date);
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                console.error("Data inválida encontrada:", item);
+                return;
+            }
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            startDate.setUTCHours(0, 0, 0, 0);
+            endDate.setUTCHours(23, 59, 59, 999);
+
+            let current = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1);
+            while (current <= endDate) {
+                const monthKey = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, '0')}`;
+                if (current < startDate || current > endDate) {
+                    current.setMonth(current.getMonth() + 1);
+                    continue;
+                }
+                const monthStart = new Date(current.getUTCFullYear(), current.getUTCMonth(), 1);
+                const monthEnd = new Date(current.getUTCFullYear(), current.getUTCMonth() + 1, 0);
+                const start = Math.max(monthStart.getTime(), startDate.getTime());
+                const end = Math.min(monthEnd.getTime(), endDate.getTime());
+                const daysInMonthCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                const monthRentability = (daysInMonthCount / totalDays) * item.rentability;
+                let existing = groupedData.find(d => d.month === monthKey);
+                if (!existing) {
+                    existing = { month: monthKey, totalRentability: 0 };
+                    groupedData.push(existing);
+                }
+                existing.totalRentability += monthRentability;
+                current.setMonth(current.getMonth() + 1);
+            }
+        });
+        const validMonths = new Set(data.map(item => {
+            return `${new Date(item.initial_date).getUTCFullYear()}-${String(new Date(item.initial_date).getUTCMonth() + 1).padStart(2, '0')}`;
+        }));
+        const filteredGroupedData = groupedData.filter(d => validMonths.has(d.month));
+        setLineChartData(filteredGroupedData);
     }
 
     async function fetchMovements() {
@@ -386,65 +402,98 @@ export default function Investments() {
         setMovements(formattedData);
     }
 
-
-
-
     async function fetchInvestmentSummary() {
         const { data, error } = await supabase
             .from("investment_movement")
-            .select("type_id, value, broker_id, nature_id");
-
+            .select("type_id, value, broker_id, nature_id, income_id"); // Adicionado income_id
         if (error) {
             console.error("Erro ao buscar investimentos:", error.message);
             return;
         }
-
         const { data: investmentTypes, error: typeError } = await supabase
             .from("investment_type")
-            .select("id, name");
-
+            .select("id, name, description");
         if (typeError) {
             console.error("Erro ao buscar tipos de investimento:", typeError.message);
             return;
         }
-
+        const { data: investmentIncomes, error: incomeError } = await supabase
+            .from("investment_income")
+            .select("id, name");
+        if (incomeError) {
+            console.error("Erro ao buscar tipos de Renda:", incomeError.message);
+            return;
+        }
         const { data: brokers, error: brokerError } = await supabase
             .from("broker")
             .select("id, name");
-
         if (brokerError) {
             console.error("Erro ao buscar corretoras:", brokerError.message);
             return;
         }
-
         const brokerMap = brokers.reduce((acc, broker) => {
             acc[broker.id] = broker.name;
             return acc;
         }, {} as Record<number, string>);
-
         const investmentTypeMap = investmentTypes.reduce((acc, type) => {
-            acc[type.id] = type.name;
+            acc[type.id] = { name: type.name, description: type.description };
+            return acc;
+        }, {} as Record<number, { name: string; description: string }>);
+        const investmentIncomeMap = investmentIncomes.reduce((acc, income) => {
+            acc[income.id] = income.name;
             return acc;
         }, {} as Record<number, string>);
-
-        const groupedInvestments = data.reduce<Record<string, { description: string; totalValue: number; broker: string }>>((acc, item) => {
-            const investmentName = investmentTypeMap[item.type_id] || "Desconhecido";
+        const groupedInvestments = data.reduce<
+            Record<string, { name: string; income_name: string; description: string; totalValue: number; broker: string }>
+        >((acc, item) => {
+            const investmentData = investmentTypeMap[item.type_id] || { name: "Desconhecido", description: "Sem descrição" };
             const brokerName = brokerMap[item.broker_id] || "Sem corretora";
-            const key = `${investmentName}-${brokerName}`;
-
+            const incomeName = investmentIncomeMap[item.income_id] || "Renda não especificada"; // Pegamos o income_name corretamente
+            const key = `${investmentData.name}-${brokerName}-${incomeName}`;
             const adjustedValue = item.nature_id === 1 ? item.value : -item.value;
-
             if (!acc[key]) {
-                acc[key] = { description: investmentName, totalValue: 0, broker: brokerName };
+                acc[key] = {
+                    name: investmentData.name,
+                    income_name: incomeName, // Agora adicionamos income_name
+                    description: investmentData.description,
+                    totalValue: 0,
+                    broker: brokerName
+                };
             }
             acc[key].totalValue += adjustedValue;
-
             return acc;
         }, {});
-
         setInvestmentsGeral(Object.values(groupedInvestments));
     }
 
+    async function fetchTopInvestments() {
+        const { data, error } = await supabase
+            .from("investment_rentability")
+            .select("type_id, rentability");
+        if (error) {
+            console.error("Erro ao buscar rentabilidade dos investimentos:", error.message);
+            return;
+        }
+        const { data: investmentTypes, error: typeError } = await supabase
+            .from("investment_type")
+            .select("id, description");
+        if (typeError) {
+            console.error("Erro ao buscar tipos de investimento:", typeError.message);
+            return;
+        }
+        const investmentMap: Record<string, number> = {};
+        data.forEach(item => {
+            const investmentName = investmentTypes.find(type => type.id === item.type_id)?.description || "Desconhecido";
+            if (!investmentMap[investmentName]) {
+                investmentMap[investmentName] = 0;
+            }
+            investmentMap[investmentName] += Number(item.rentability);
+        });
+        const investmentChartData = Object.entries(investmentMap)
+            .map(([description, totalRentability]) => ({ description, totalRentability }))
+            .sort((a, b) => b.totalRentability - a.totalRentability);
+        setBarChartData(investmentChartData);
+    }
 
     return (
         <div className="p-4">
@@ -640,7 +689,7 @@ export default function Investments() {
                         <DialogTitle>Cadastrar Rentabilidade</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-1 gap-4">
-                    <Label>Investimento</Label>
+                        <Label>Investimento</Label>
                         <Select
                             onValueChange={(value) =>
                                 setNewRentability({ ...newRentability, type_id: value })
@@ -762,18 +811,16 @@ export default function Investments() {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        {investmentNames.map((name, index) => (
-                            <Line
-                                key={index}
-                                type="monotone"
-                                dataKey={name}
-                                stroke={generateColor(index)}
-                                strokeWidth={2}
-                                dot={{ r: 4 }}
-                                activeDot={{ r: 6 }}
-                            />
-                        ))}
+                        <Line
+                            type="monotone"
+                            dataKey="totalRentability"
+                            stroke="#8884d8"
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                        />
                     </LineChart>
+
                 </ResponsiveContainer>
                 <Table className="w-full border rounded-lg">
                     <TableHeader>
@@ -811,20 +858,22 @@ export default function Investments() {
                 <Table className="w-full border rounded-lg">
                     <TableHeader>
                         <TableRow className="bg-gray-200">
+                            <TableHead className="p-2 text-left">Tipo de Investimento</TableHead>
                             <TableHead className="p-2 text-left">Investimento</TableHead>
                             <TableHead className="p-2 text-left">Valor Total (R$)</TableHead>
                             <TableHead className="p-2 text-left">Corretora</TableHead>
+                            <TableHead className="p-2 text-left">Renda</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {investmentsGeral.length > 0 ? (
                             investmentsGeral.map((inv, index) => (
                                 <TableRow key={index} className="border-b">
+                                    <TableCell className="p-2">{inv.name}</TableCell>
                                     <TableCell className="p-2">{inv.description}</TableCell>
-                                    <TableCell className="p-2">
-                                        R$ {inv.totalValue.toFixed(2)}
-                                    </TableCell>
+                                    <TableCell className="p-2">R$ {inv.totalValue.toFixed(2)}</TableCell>
                                     <TableCell className="p-2">{inv.broker}</TableCell>
+                                    <TableCell className="p-2">{inv.income_name}</TableCell>
                                 </TableRow>
                             ))
                         ) : (
@@ -836,6 +885,15 @@ export default function Investments() {
                         )}
                     </TableBody>
                 </Table>
+                <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={barChartData} layout="vertical">
+                        <XAxis type="number" />
+                        <YAxis dataKey="description" type="category" width={150} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="totalRentability" fill="#82ca9d" barSize={30} />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
