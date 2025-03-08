@@ -36,6 +36,9 @@ export default function Investments() {
     const [pieChartData, setPieChartData] = useState<{ name: string; value: number }[]>([]);
     const [barChartData, setBarChartData] = useState<{ description: string; totalRentability: number }[]>([]);
     const [incomeChartData, setIncomeChartData] = useState<{ name: string; value: number }[]>([]);
+    const [totalInvested, setTotalInvested] = useState(0);
+    const [totalUpdated, setTotalUpdated] = useState(0);
+    const [totalGain, setTotalGain] = useState(0);
     const [movements, setMovements] = useState<{ date: string; value: number; movement: string; description: string; }[]>([]);
     const COLORS = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2"];
     const generateColor = (index: number) => {
@@ -73,6 +76,7 @@ export default function Investments() {
         income_name: string;
         description: string;
         totalValue: number;
+        updatedValue: number;
         broker: string;
     }[]>([]);
 
@@ -405,11 +409,12 @@ export default function Investments() {
     async function fetchInvestmentSummary() {
         const { data, error } = await supabase
             .from("investment_movement")
-            .select("type_id, value, broker_id, nature_id, income_id"); // Adicionado income_id
+            .select("type_id, value, broker_id, nature_id, income_id");
         if (error) {
             console.error("Erro ao buscar investimentos:", error.message);
             return;
         }
+
         const { data: investmentTypes, error: typeError } = await supabase
             .from("investment_type")
             .select("id, name, description");
@@ -417,6 +422,7 @@ export default function Investments() {
             console.error("Erro ao buscar tipos de investimento:", typeError.message);
             return;
         }
+
         const { data: investmentIncomes, error: incomeError } = await supabase
             .from("investment_income")
             .select("id, name");
@@ -424,6 +430,7 @@ export default function Investments() {
             console.error("Erro ao buscar tipos de Renda:", incomeError.message);
             return;
         }
+
         const { data: brokers, error: brokerError } = await supabase
             .from("broker")
             .select("id, name");
@@ -431,39 +438,73 @@ export default function Investments() {
             console.error("Erro ao buscar corretoras:", brokerError.message);
             return;
         }
+
+        const { data: rentabilities, error: rentabilityError } = await supabase
+            .from("investment_rentability")
+            .select("type_id, rentability")
+            .order("final_date", { ascending: false });
+
+        if (rentabilityError) {
+            console.error("Erro ao buscar rentabilidades:", rentabilityError.message);
+            return;
+        }
+
         const brokerMap = brokers.reduce((acc, broker) => {
             acc[broker.id] = broker.name;
             return acc;
         }, {} as Record<number, string>);
+
         const investmentTypeMap = investmentTypes.reduce((acc, type) => {
             acc[type.id] = { name: type.name, description: type.description };
             return acc;
         }, {} as Record<number, { name: string; description: string }>);
+
         const investmentIncomeMap = investmentIncomes.reduce((acc, income) => {
             acc[income.id] = income.name;
             return acc;
         }, {} as Record<number, string>);
+
+        const rentabilityMap = rentabilities.reduce((acc, rent) => {
+            if (!acc[rent.type_id]) {
+                acc[rent.type_id] = rent.rentability;
+            }
+            return acc;
+        }, {} as Record<number, number>);
         const groupedInvestments = data.reduce<
-            Record<string, { name: string; income_name: string; description: string; totalValue: number; broker: string }>
+            Record<string, { name: string; income_name: string; description: string; totalValue: number; updatedValue: number; broker: string; lastRentability: number }>
         >((acc, item) => {
             const investmentData = investmentTypeMap[item.type_id] || { name: "Desconhecido", description: "Sem descrição" };
             const brokerName = brokerMap[item.broker_id] || "Sem corretora";
-            const incomeName = investmentIncomeMap[item.income_id] || "Renda não especificada"; // Pegamos o income_name corretamente
+            const incomeName = investmentIncomeMap[item.income_id] || "Renda não especificada";
+            const rentability = rentabilityMap[item.type_id] || 0; // Rentabilidade mais recente em %
             const key = `${investmentData.name}-${brokerName}-${incomeName}`;
             const adjustedValue = item.nature_id === 1 ? item.value : -item.value;
             if (!acc[key]) {
                 acc[key] = {
                     name: investmentData.name,
-                    income_name: incomeName, // Agora adicionamos income_name
+                    income_name: incomeName,
                     description: investmentData.description,
                     totalValue: 0,
-                    broker: brokerName
+                    updatedValue: 0,
+                    broker: brokerName,
+                    lastRentability: rentability
                 };
             }
             acc[key].totalValue += adjustedValue;
+            acc[key].updatedValue = acc[key].totalValue * (1 + (acc[key].lastRentability / 100));
             return acc;
         }, {});
         setInvestmentsGeral(Object.values(groupedInvestments));
+
+        const totalInvested = Object.values(groupedInvestments).reduce((sum, item) => sum + item.totalValue, 0);
+        const totalUpdated = Object.values(groupedInvestments).reduce((sum, item) => sum + item.updatedValue, 0);
+        const totalGain = totalUpdated - totalInvested;
+
+        setTotalInvested(totalInvested);
+        setTotalUpdated(totalUpdated);
+        setTotalGain(totalGain);
+
+
     }
 
     async function fetchTopInvestments() {
@@ -497,8 +538,26 @@ export default function Investments() {
 
     return (
         <div className="p-4">
-            <h1 className="text-xl font-bold mb-4">Investimentos</h1>
-
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", padding: "20px" }}>
+                <div style={{ background: "#e0f7fa", padding: "20px", borderRadius: "10px", width: "30%", textAlign: "center" }}>
+                    <h3>Valor Atualizado</h3>
+                    <p style={{ fontSize: "24px", fontWeight: "bold" }}>
+                        R$ {totalUpdated.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                </div>
+                <div style={{ background: "#f5f5f5", padding: "20px", borderRadius: "10px", width: "30%", textAlign: "center" }}>
+                    <h3>Valor Investido</h3>
+                    <p style={{ fontSize: "24px", fontWeight: "bold" }}>
+                        R$ {totalInvested.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                </div>
+                <div style={{ background: totalGain >= 0 ? "#dcedc8" : "#ffcdd2", padding: "20px", borderRadius: "10px", width: "30%", textAlign: "center" }}>
+                    <h3>Ganho Total</h3>
+                    <p style={{ fontSize: "24px", fontWeight: "bold", color: totalGain >= 0 ? "#2e7d32" : "#c62828" }}>
+                        R$ {totalGain.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                </div>
+            </div>
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button>Adicionar Investimento</Button>
@@ -606,7 +665,6 @@ export default function Investments() {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog para adicionar tipo de investimento */}
             <Dialog open={openType} onOpenChange={setOpenType}>
                 <DialogTrigger asChild>
                     <Button>Adicionar Tipo de Investimento</Button>
@@ -871,7 +929,7 @@ export default function Investments() {
                                 <TableRow key={index} className="border-b">
                                     <TableCell className="p-2">{inv.name}</TableCell>
                                     <TableCell className="p-2">{inv.description}</TableCell>
-                                    <TableCell className="p-2">R$ {inv.totalValue.toFixed(2)}</TableCell>
+                                    <TableCell className="p-2">R$ {inv.updatedValue.toFixed(2)}</TableCell>
                                     <TableCell className="p-2">{inv.broker}</TableCell>
                                     <TableCell className="p-2">{inv.income_name}</TableCell>
                                 </TableRow>
