@@ -218,7 +218,6 @@ export default function TransactionsAnalytics() {
               </ResponsiveContainer>
             </div>
 
-
             {/* Gráfico de Barra - Principais Classes de Gasto */}
             <div className="p-4 bg-white shadow rounded-lg">
               <h2 className="text-m font-semibold mb-4">Despesas por Classe</h2>

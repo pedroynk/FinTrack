@@ -41,10 +41,7 @@ export default function Investments() {
     const [totalGain, setTotalGain] = useState(0);
     const [movements, setMovements] = useState<{ date: string; value: number; movement: string; description: string; }[]>([]);
     const COLORS = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2"];
-    const generateColor = (index: number) => {
-        const colors = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2", "#FF69B4", "#A569BD"];
-        return colors[index % colors.length];
-    };
+
     const [newRentability, setNewRentability] = useState({
         type_id: "",
         initial_value: "",
@@ -58,18 +55,14 @@ export default function Investments() {
     const [newType, setNewType] = useState({
         income_id: "",
         name: "",
-        value_yield: "",
-        base_yield: "",
         description: "",
     });
     const [newInvestment, setNewInvestment] = useState({
         type_id: "",
         broker_id: "",
-        income_id: "",
         nature_id: "",
         value: "",
         date: new Date(),
-        description: "",
     });
     const [investmentsGeral, setInvestmentsGeral] = useState<{
         name: string;
@@ -160,7 +153,6 @@ export default function Investments() {
         const { error } = await supabase.from("investment_type").insert([
             {
                 ...newType,
-                value_yield: parseFloat(newType.value_yield),
             },
         ]);
 
@@ -293,33 +285,58 @@ export default function Investments() {
     }
 
     async function fetchIncomeDistribution() {
-        const { data, error } = await supabase
+        const { data: movements, error } = await supabase
             .from("investment_movement")
-            .select("income_id, value, nature_id");
+            .select("type_id, value, nature_id");
 
         if (error) {
             console.error("Erro ao buscar distribuição de renda:", error.message);
             return;
         }
 
-        const incomeData = data.reduce<Record<string, number>>((acc, item) => {
-            const incomeType = item.income_id === 1 ? "Renda Passiva" : "Renda Variável";
-            const value = item.nature_id === 1 ? item.value : -item.value;
+        const { data: investmentTypes, error: typeError } = await supabase
+            .from("investment_type")
+            .select("id, income_id");
 
+        if (typeError) {
+            console.error("Erro ao buscar tipos de investimento:", typeError.message);
+            return;
+        }
+
+        const { data: incomeTypes, error: incomeError } = await supabase
+            .from("investment_income")
+            .select("id, name");
+
+        if (incomeError) {
+            console.error("Erro ao buscar nomes de renda:", incomeError.message);
+            return;
+        }
+
+        const investmentTypeMap = investmentTypes.reduce((acc, type) => {
+            acc[type.id] = type.income_id;
+            return acc;
+        }, {} as Record<number, number>);
+
+        const incomeTypeMap = incomeTypes.reduce((acc, income) => {
+            acc[income.id] = income.name;
+            return acc;
+        }, {} as Record<number, string>);
+
+        const incomeData = movements.reduce<Record<string, number>>((acc, item) => {
+            const incomeId = investmentTypeMap[item.type_id] || 0;
+            const incomeType = incomeTypeMap[incomeId] || "Desconhecido";
+            const value = item.nature_id === 1 ? item.value : -item.value;
             if (!acc[incomeType]) {
                 acc[incomeType] = 0;
             }
             acc[incomeType] += value;
             return acc;
         }, {});
-
         const totalIncome = Object.values(incomeData).reduce((sum, item) => sum + item, 0);
-
         const percentageData = Object.keys(incomeData).map((key) => ({
             name: key,
-            value: parseFloat(((incomeData[key] / totalIncome) * 100).toFixed(2)), // 🔹 Transformando em porcentagem
+            value: parseFloat(((incomeData[key] / totalIncome) * 100).toFixed(2)),
         }));
-
         setIncomeChartData(percentageData);
     }
 
@@ -407,9 +424,10 @@ export default function Investments() {
     }
 
     async function fetchInvestmentSummary() {
-        const { data, error } = await supabase
+        const { data: movements, error } = await supabase
             .from("investment_movement")
-            .select("type_id, value, broker_id, nature_id, income_id");
+            .select("type_id, value, broker_id, nature_id");
+
         if (error) {
             console.error("Erro ao buscar investimentos:", error.message);
             return;
@@ -417,7 +435,8 @@ export default function Investments() {
 
         const { data: investmentTypes, error: typeError } = await supabase
             .from("investment_type")
-            .select("id, name, description");
+            .select("id, name, description, income_id");
+
         if (typeError) {
             console.error("Erro ao buscar tipos de investimento:", typeError.message);
             return;
@@ -426,6 +445,7 @@ export default function Investments() {
         const { data: investmentIncomes, error: incomeError } = await supabase
             .from("investment_income")
             .select("id, name");
+
         if (incomeError) {
             console.error("Erro ao buscar tipos de Renda:", incomeError.message);
             return;
@@ -434,6 +454,7 @@ export default function Investments() {
         const { data: brokers, error: brokerError } = await supabase
             .from("broker")
             .select("id, name");
+
         if (brokerError) {
             console.error("Erro ao buscar corretoras:", brokerError.message);
             return;
@@ -455,9 +476,9 @@ export default function Investments() {
         }, {} as Record<number, string>);
 
         const investmentTypeMap = investmentTypes.reduce((acc, type) => {
-            acc[type.id] = { name: type.name, description: type.description };
+            acc[type.id] = { name: type.name, description: type.description, income_id: type.income_id };
             return acc;
-        }, {} as Record<number, { name: string; description: string }>);
+        }, {} as Record<number, { name: string; description: string; income_id: number }>);
 
         const investmentIncomeMap = investmentIncomes.reduce((acc, income) => {
             acc[income.id] = income.name;
@@ -470,15 +491,18 @@ export default function Investments() {
             }
             return acc;
         }, {} as Record<number, number>);
-        const groupedInvestments = data.reduce<
+
+        const groupedInvestments = movements.reduce<
             Record<string, { name: string; income_name: string; description: string; totalValue: number; updatedValue: number; broker: string; lastRentability: number }>
         >((acc, item) => {
-            const investmentData = investmentTypeMap[item.type_id] || { name: "Desconhecido", description: "Sem descrição" };
+            const investmentData = investmentTypeMap[item.type_id] || { name: "Desconhecido", description: "Sem descrição", income_id: 0 };
             const brokerName = brokerMap[item.broker_id] || "Sem corretora";
-            const incomeName = investmentIncomeMap[item.income_id] || "Renda não especificada";
-            const rentability = rentabilityMap[item.type_id] || 0; // Rentabilidade mais recente em %
+            const incomeName = investmentIncomeMap[investmentData.income_id] || "Renda não especificada";
+            const rentability = rentabilityMap[item.type_id] || 0;
+
             const key = `${investmentData.name}-${brokerName}-${incomeName}`;
             const adjustedValue = item.nature_id === 1 ? item.value : -item.value;
+
             if (!acc[key]) {
                 acc[key] = {
                     name: investmentData.name,
@@ -503,8 +527,6 @@ export default function Investments() {
         setTotalInvested(totalInvested);
         setTotalUpdated(totalUpdated);
         setTotalGain(totalGain);
-
-
     }
 
     async function fetchTopInvestments() {
@@ -537,7 +559,7 @@ export default function Investments() {
     }
 
     return (
-        <div className="p-4">
+        <div className="p-6 space-y-6">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", padding: "20px" }}>
                 <div style={{ background: "#e0f7fa", padding: "20px", borderRadius: "10px", width: "30%", textAlign: "center" }}>
                     <h3>Valor Atualizado</h3>
@@ -558,400 +580,395 @@ export default function Investments() {
                     </p>
                 </div>
             </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    <Button>Adicionar Investimento</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
-                    <DialogHeader>
-                        <DialogTitle>Novo Investimento</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 gap-4">
-                        <Label>Data</Label>
-                        <DatePicker
-                            selectedDate={newInvestment.date}
-                            onSelect={(date) =>
-                                setNewInvestment({ ...newInvestment, date: date ?? new Date() })
-                            }
-                        />
+            <div className="flex justify-end gap-4">
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild>
+                        <Button>Adicionar Investimento</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                        <DialogHeader>
+                            <DialogTitle>Novo Investimento</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Label>Data</Label>
+                            <DatePicker
+                                selectedDate={newInvestment.date}
+                                onSelect={(date) =>
+                                    setNewInvestment({ ...newInvestment, date: date ?? new Date() })
+                                }
+                            />
 
-                        <Label>Movimento</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setNewInvestment({ ...newInvestment, nature_id: value })
-                            }
-                            value={newInvestment.nature_id}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione o Movimento" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {natures.length > 0 ? (
-                                    natures.map((n) => (
-                                        <SelectItem key={n.id} value={n.id.toString()}>
-                                            {n.name}
+                            <Label>Movimento</Label>
+                            <Select
+                                onValueChange={(value) =>
+                                    setNewInvestment({ ...newInvestment, nature_id: value })
+                                }
+                                value={newInvestment.nature_id}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o Movimento" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {natures.length > 0 ? (
+                                        natures.map((n) => (
+                                            <SelectItem key={n.id} value={n.id.toString()}>
+                                                {n.name}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            Nenhum Movimento Encontrado.
                                         </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        Nenhum Movimento Encontrado.
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
+                                    )}
+                                </SelectContent>
+                            </Select>
 
-                        <Label>Valor</Label>
-                        <Input
-                            type="number"
-                            min="1"
-                            value={newInvestment.value}
-                            onChange={(e) =>
-                                setNewInvestment({ ...newInvestment, value: e.target.value })
-                            }
-                        />
+                            <Label>Valor</Label>
+                            <Input
+                                type="number"
+                                min="1"
+                                value={newInvestment.value}
+                                onChange={(e) =>
+                                    setNewInvestment({ ...newInvestment, value: e.target.value })
+                                }
+                            />
 
-                        <Label>Investimento</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setNewInvestment({ ...newInvestment, type_id: value })
-                            }
-                            value={newInvestment.type_id}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione o Tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {types.length > 0 ? (
-                                    types.map((t) => (
-                                        <SelectItem key={t.id} value={t.id.toString()}>
-                                            {t.description}
+                            <Label>Investimento</Label>
+                            <Select
+                                onValueChange={(value) =>
+                                    setNewInvestment({ ...newInvestment, type_id: value })
+                                }
+                                value={newInvestment.type_id}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {types.length > 0 ? (
+                                        types.map((t) => (
+                                            <SelectItem key={t.id} value={t.id.toString()}>
+                                                {t.description}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            Nenhum tipo encontrado
                                         </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        Nenhum tipo encontrado
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
+                                    )}
+                                </SelectContent>
+                            </Select>
 
-                        <Label>Corretora</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setNewInvestment({ ...newInvestment, broker_id: value })
-                            }
-                            value={newInvestment.broker_id}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione a Corretora" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {brokers.length > 0 ? (
-                                    brokers.map((b) => (
-                                        <SelectItem key={b.id} value={b.id.toString()}>
-                                            {b.name}
+                            <Label>Corretora</Label>
+                            <Select
+                                onValueChange={(value) =>
+                                    setNewInvestment({ ...newInvestment, broker_id: value })
+                                }
+                                value={newInvestment.broker_id}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione a Corretora" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {brokers.length > 0 ? (
+                                        brokers.map((b) => (
+                                            <SelectItem key={b.id} value={b.id.toString()}>
+                                                {b.name}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            Nenhuma corretora encontrada
                                         </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        Nenhuma corretora encontrada
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
+                                    )}
+                                </SelectContent>
+                            </Select>
 
-                        <Button onClick={createInvestment}>Salvar</Button>
+                            <Button onClick={createInvestment}>Salvar</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openType} onOpenChange={setOpenType}>
+                    <DialogTrigger asChild>
+                        <Button>Adicionar Tipo de Investimento</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                        <DialogHeader>
+                            <DialogTitle>Novo Tipo de Investimento</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Label>Tipo de Investimento</Label>
+                            <Input
+                                type="text"
+                                value={newType.name}
+                                onChange={(e) =>
+                                    setNewType({ ...newType, name: e.target.value })
+                                }
+                            />
+                            <Label>Descrição</Label>
+                            <Input
+                                type="text"
+                                value={newType.description}
+                                onChange={(e) =>
+                                    setNewType({ ...newType, description: e.target.value })
+                                }
+                            />
+                            <Label>Tipo de Renda</Label>
+                            <Select
+                                onValueChange={(value) =>
+                                    setNewType({ ...newType, income_id: value })
+                                }
+                                value={newType.income_id}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o Tipo de Renda" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {incomes.length > 0 ? (
+                                        incomes.map((i) => (
+                                            <SelectItem key={i.id} value={i.id.toString()}>
+                                                {i.name}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            Nenhum tipo de renda encontrado
+                                        </SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+
+                            <Button onClick={createType}>Salvar</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={openRentability} onOpenChange={setOpenRentability}>
+                    <DialogTrigger asChild>
+                        <Button>Adicionar Rentabilidade</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                        <DialogHeader>
+                            <DialogTitle>Cadastrar Rentabilidade</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Label>Investimento</Label>
+                            <Select
+                                onValueChange={(value) =>
+                                    setNewRentability({ ...newRentability, type_id: value })
+                                }
+                                value={newRentability.type_id}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o Investimento" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {types.length > 0 ? (
+                                        types.map((t) => (
+                                            <SelectItem key={t.id} value={t.id.toString()}>
+                                                {t.description}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>
+                                            Nenhum tipo encontrado
+                                        </SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <Label>Valor Inicial no Período</Label>
+                            <Input
+                                type="number"
+                                value={newRentability.initial_value}
+                                onChange={(e) =>
+                                    setNewRentability({ ...newRentability, initial_value: e.target.value })
+                                }
+                            />
+                            <Label>Valor Final no Período</Label>
+                            <Input
+                                type="number"
+                                value={newRentability.final_value}
+                                onChange={(e) =>
+                                    setNewRentability({ ...newRentability, final_value: e.target.value })
+                                }
+                            />
+                            <Label>Aportes no Período (Se houver)</Label>
+                            <Input
+                                type="number"
+                                value={newRentability.contribution_value}
+                                onChange={(e) =>
+                                    setNewRentability({ ...newRentability, contribution_value: e.target.value })
+                                }
+                            />
+                            <Label>Saques no Período (Se houver)</Label>
+                            <Input
+                                type="number"
+                                value={newRentability.withdrawal_value}
+                                onChange={(e) =>
+                                    setNewRentability({ ...newRentability, withdrawal_value: e.target.value })
+                                }
+                            />
+                            <Label>Data Inicial</Label>
+                            <DatePicker
+                                selectedDate={newRentability.initial_date}
+                                onSelect={(date) =>
+                                    setNewRentability({ ...newRentability, initial_date: date ?? new Date() })
+                                }
+                            />
+                            <Label>Data Final</Label>
+                            <DatePicker
+                                selectedDate={newRentability.final_date}
+                                onSelect={(date) =>
+                                    setNewRentability({ ...newRentability, final_date: date ?? new Date() })
+                                }
+                            />
+                            <Button onClick={createRentability}>Salvar</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
+            <div className="grid grid-cols-3 gap-6 p-6">
+                {/* 📊 Gráfico de Barras (Esquerda) */}
+                <div className="bg-white shadow rounded-lg p-4 space-y-6">
+                    <ResponsiveContainer width={400} height={300}>
+                        <BarChart data={barChartData} layout="vertical">
+                            <XAxis type="number" />
+                            <YAxis dataKey="description" type="category" width={150} />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="totalRentability" fill="#82ca9d" barSize={30} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                    <div className="w-full">
+                            <ResponsiveContainer width={500} height={300}>
+                                <LineChart data={lineChartData}>
+                                    <XAxis dataKey="month" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="totalRentability"
+                                        stroke="#8884d8"
+                                        strokeWidth={2}
+                                        dot={{ r: 4 }}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
                     </div>
-                </DialogContent>
-            </Dialog>
+                </div>
 
-            <Dialog open={openType} onOpenChange={setOpenType}>
-                <DialogTrigger asChild>
-                    <Button>Adicionar Tipo de Investimento</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
-                    <DialogHeader>
-                        <DialogTitle>Novo Tipo de Investimento</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 gap-4">
-                        <Label>Tipo de Investimento</Label>
-                        <Input
-                            type="text"
-                            value={newType.name}
-                            onChange={(e) =>
-                                setNewType({ ...newType, name: e.target.value })
-                            }
-                        />
-                        <Label>Descrição</Label>
-                        <Input
-                            type="text"
-                            value={newType.description}
-                            onChange={(e) =>
-                                setNewType({ ...newType, description: e.target.value })
-                            }
-                        />
-                        <Label>Tipo de Renda</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setNewType({ ...newType, income_id: value })
-                            }
-                            value={newType.income_id}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione o Tipo de Renda" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {incomes.length > 0 ? (
-                                    incomes.map((i) => (
-                                        <SelectItem key={i.id} value={i.id.toString()}>
-                                            {i.name}
-                                        </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        Nenhum tipo de renda encontrado
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                        <Label>Rendimento (%) / Dividendo (R$) </Label>
-                        <Input
-                            type="number"
-                            min="1"
-                            value={newType.value_yield}
-                            onChange={(e) =>
-                                setNewType({ ...newType, value_yield: e.target.value })
-                            }
-                        />
-
-                        <Label>Base de Retorno</Label>
-                        <Input
-                            type="text"
-                            value={newType.base_yield}
-                            onChange={(e) =>
-                                setNewType({ ...newType, base_yield: e.target.value })
-                            }
-                        />
-
-                        <Button onClick={createType}>Salvar</Button>
+                {/* 📈 Gráficos de Pizza (Centro, Um Acima do Outro) */}
+                <div className="bg-white shadow rounded-lg p-4">
+                    <div className="bg-white shadow rounded-lg p-4 flex justify-center items-center">
+                        <PieChart width={350} height={300}>
+                            <Pie
+                                data={pieChartData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={110}
+                                innerRadius={50}
+                                paddingAngle={5}
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                            >
+                                {pieChartData.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#fff" strokeWidth={2} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => `${value}%`} />
+                            <Legend verticalAlign="bottom" height={36} />
+                        </PieChart>
                     </div>
-                </DialogContent>
-            </Dialog>
 
-            <Dialog open={openRentability} onOpenChange={setOpenRentability}>
-                <DialogTrigger asChild>
-                    <Button>Adicionar Rentabilidade</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
-                    <DialogHeader>
-                        <DialogTitle>Cadastrar Rentabilidade</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 gap-4">
-                        <Label>Investimento</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setNewRentability({ ...newRentability, type_id: value })
-                            }
-                            value={newRentability.type_id}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione o Investimento" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {types.length > 0 ? (
-                                    types.map((t) => (
-                                        <SelectItem key={t.id} value={t.id.toString()}>
-                                            {t.description}
-                                        </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        Nenhum tipo encontrado
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                        <Label>Valor Inicial no Período</Label>
-                        <Input
-                            type="number"
-                            value={newRentability.initial_value}
-                            onChange={(e) =>
-                                setNewRentability({ ...newRentability, initial_value: e.target.value })
-                            }
-                        />
-                        <Label>Valor Final no Período</Label>
-                        <Input
-                            type="number"
-                            value={newRentability.final_value}
-                            onChange={(e) =>
-                                setNewRentability({ ...newRentability, final_value: e.target.value })
-                            }
-                        />
-                        <Label>Aportes no Período (Se houver)</Label>
-                        <Input
-                            type="number"
-                            value={newRentability.contribution_value}
-                            onChange={(e) =>
-                                setNewRentability({ ...newRentability, contribution_value: e.target.value })
-                            }
-                        />
-                        <Label>Saques no Período (Se houver)</Label>
-                        <Input
-                            type="number"
-                            value={newRentability.withdrawal_value}
-                            onChange={(e) =>
-                                setNewRentability({ ...newRentability, withdrawal_value: e.target.value })
-                            }
-                        />
-                        <Label>Data Inicial</Label>
-                        <DatePicker
-                            selectedDate={newRentability.initial_date}
-                            onSelect={(date) =>
-                                setNewRentability({ ...newRentability, initial_date: date ?? new Date() })
-                            }
-                        />
-                        <Label>Data Final</Label>
-                        <DatePicker
-                            selectedDate={newRentability.final_date}
-                            onSelect={(date) =>
-                                setNewRentability({ ...newRentability, final_date: date ?? new Date() })
-                            }
-                        />
-                        <Button onClick={createRentability}>Salvar</Button>
+                    <div className="bg-white shadow rounded-lg p-4 flex justify-center items-center">
+                        <PieChart width={350} height={300}>
+                            <Pie
+                                data={incomeChartData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={110}
+                                innerRadius={50}
+                                paddingAngle={5}
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                            >
+                                {incomeChartData.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#fff" strokeWidth={2} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => `${value}%`} />
+                            <Legend verticalAlign="bottom" height={36} />
+                        </PieChart>
                     </div>
-                </DialogContent>
-            </Dialog>
-            <div className="p-4 bg-white shadow rounded-lg">
-                <PieChart width={450} height={350}>
-                    <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={110}
-                        innerRadius={50}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        isAnimationActive={true}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-                    >
-                        {pieChartData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#fff" strokeWidth={2} />
-                        ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value}%`} />
-                    <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-                <h1></h1>
-                <PieChart width={450} height={350}>
-                    <Pie
-                        data={incomeChartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={110}
-                        innerRadius={50}
-                        fill="#8884d8"
-                        paddingAngle={5}
-                        dataKey="value"
-                        isAnimationActive={true}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-                    >
-                        {incomeChartData.map((_, index) => (
-                            <Cell key={`cell-${index}`} stroke="#fff" strokeWidth={2} />
-                        ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value}%`} />
-                    <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-                <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={lineChartData}>
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                            type="monotone"
-                            dataKey="totalRentability"
-                            stroke="#8884d8"
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
-                        />
-                    </LineChart>
+                </div>
 
-                </ResponsiveContainer>
-                <Table className="w-full border rounded-lg">
-                    <TableHeader>
-                        <TableRow className="bg-gray-200">
-                            <TableHead className="p-2 text-left">Data</TableHead>
-                            <TableHead className="p-2 text-left">Valor (R$)</TableHead>
-                            <TableHead className="p-2 text-left">Movimento</TableHead>
-                            <TableHead className="p-2 text-left">Descrição</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {movements.length > 0 ? (
-                            movements.map((mov, index) => (
-                                <TableRow key={index} className="border-b">
-                                    <TableCell className="p-2">{mov.date}</TableCell>
-                                    <TableCell className="p-2">R$ {mov.value.toFixed(2)}</TableCell>
-                                    <TableCell
-                                        className={`p-2 font-bold ${mov.movement === "Aporte / Compra" ? "text-green-600" : "text-red-600"}`}
-                                    >
-                                        {mov.movement}
-                                    </TableCell>
-                                    <TableCell className="p-2">{mov.description}</TableCell>
+                <div className="p-4 bg-white shadow rounded-lg overflow-auto">
+                    <div className="bg-white shadow rounded-lg p-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-sm">Data</TableHead>
+                                    <TableHead className="text-sm">Valor (R$)</TableHead>
+                                    <TableHead className="text-sm">Movimento</TableHead>
+                                    <TableHead className="text-sm">Descrição</TableHead>
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell className="p-2 text-center" colSpan={4}>
-                                    Nenhuma movimentação encontrada.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            </TableHeader>
+                            <TableBody className="text-xs">
+                                {movements.length > 0 ? (
+                                    movements.map((mov, index) => (
+                                        <TableRow key={index} className="border-b">
+                                            <TableCell className="p-2">{mov.date}</TableCell>
+                                            <TableCell className="p-2">R$ {mov.value.toFixed(2)}</TableCell>
+                                            <TableCell className={`p-2 font-bold ${mov.movement === "Aporte / Compra" ? "text-green-600" : "text-red-600"}`}>{mov.movement}</TableCell>
+                                            <TableCell className="p-2">{mov.description}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell className="p-2 text-center" colSpan={4}>
+                                            Nenhuma movimentação encontrada.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                <Table className="w-full border rounded-lg">
-                    <TableHeader>
-                        <TableRow className="bg-gray-200">
-                            <TableHead className="p-2 text-left">Tipo de Investimento</TableHead>
-                            <TableHead className="p-2 text-left">Investimento</TableHead>
-                            <TableHead className="p-2 text-left">Valor Total (R$)</TableHead>
-                            <TableHead className="p-2 text-left">Corretora</TableHead>
-                            <TableHead className="p-2 text-left">Renda</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {investmentsGeral.length > 0 ? (
-                            investmentsGeral.map((inv, index) => (
-                                <TableRow key={index} className="border-b">
-                                    <TableCell className="p-2">{inv.name}</TableCell>
-                                    <TableCell className="p-2">{inv.description}</TableCell>
-                                    <TableCell className="p-2">R$ {inv.updatedValue.toFixed(2)}</TableCell>
-                                    <TableCell className="p-2">{inv.broker}</TableCell>
-                                    <TableCell className="p-2">{inv.income_name}</TableCell>
+                    <div className="bg-white shadow rounded-lg p-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-sm">Tipo de Investimento</TableHead>
+                                    <TableHead className="text-sm">Investimento</TableHead>
+                                    <TableHead className="text-sm">Valor Total (R$)</TableHead>
+                                    <TableHead className="text-sm">Corretora</TableHead>
+                                    <TableHead className="text-sm">Renda</TableHead>
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell className="p-2 text-center" colSpan={3}>
-                                    Nenhum investimento encontrado.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-                <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={barChartData} layout="vertical">
-                        <XAxis type="number" />
-                        <YAxis dataKey="description" type="category" width={150} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="totalRentability" fill="#82ca9d" barSize={30} />
-                    </BarChart>
-                </ResponsiveContainer>
+                            </TableHeader>
+                            <TableBody className="text-xs">
+                                {investmentsGeral.length > 0 ? (
+                                    investmentsGeral.map((inv, index) => (
+                                        <TableRow key={index} className="border-b">
+                                            <TableCell className="p-2">{inv.name}</TableCell>
+                                            <TableCell className="p-2">{inv.description}</TableCell>
+                                            <TableCell className="p-2">R$ {inv.updatedValue.toFixed(2)}</TableCell>
+                                            <TableCell className="p-2">{inv.broker}</TableCell>
+                                            <TableCell className="p-2">{inv.income_name}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell className="p-2 text-center" colSpan={5}>
+                                            Nenhum investimento encontrado.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
             </div>
         </div>
     );
