@@ -54,8 +54,12 @@ export default function Transactions() {
     description: "",
     date: new Date(),
   });
+  const [newClass, setNewClass] = useState({
+    name: "",
+  });
 
   const [open, setOpen] = useState(false);
+  const [openClass, setOpenClass] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -124,7 +128,7 @@ export default function Transactions() {
         duration: 2000,
       });
       fetchTransactions();
-      setOpen(false);
+      setOpenClass(false);
     }
   }
 
@@ -207,6 +211,31 @@ export default function Transactions() {
         return <CircleDollarSign className="text-green-500" />;
       case "Despesa":
         return <CircleDollarSign className="text-red-500" />;
+    }
+  }
+
+  async function createClass() {
+    const { error } = await supabase.from("class").insert([
+      {
+        name: newClass.name,
+      },
+    ]);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: `Falha ao adicionar Classe: ${error.message}`,
+        variant: "destructive",
+        duration: 2000,
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: "Classe adicionada com sucesso!",
+        duration: 2000,
+      });
+      fetchTransactions();
+      setOpenClass(false);
     }
   }
 
@@ -323,10 +352,44 @@ export default function Transactions() {
                       })
                     }
                   />
-
-
                   <Button onClick={isEditing ? updateTransaction : createTransaction}>
                     {isEditing ? "Atualizar" : "Salvar"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog
+            open={openClass}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setNewClass({
+                  name: "",
+                });
+              }
+              setOpenClass(isOpen);
+            }}
+          >
+              <DialogTrigger asChild>
+                <Button>Adicionar Classe</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle>Adicionar Classe</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-4">
+                  <Label>Nome da Classe</Label>
+                  <Input
+                    type="text"
+                    value={newClass.name}
+                    onChange={(e) =>
+                      setNewClass({
+                        ...newClass,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+                  <Button onClick={createClass}>
+                    Salvar
                   </Button>
                 </div>
               </DialogContent>
