@@ -522,3 +522,66 @@ export async function createRentability(newRentability: any) {
     });
     return { success: true };
 }
+
+export async function fetchRentabilityOverTime() {
+    const { data, error } = await supabase
+        .from("investment_rentability")
+        .select("rentability, initial_date, final_date");
+
+    if (error) {
+        console.error("Erro ao buscar rentabilidade por tempo:", error.message);
+        return [];
+    }
+
+    const groupedData: { month: string; totalRentability: number }[] = [];
+
+    data.forEach(item => {
+        const startDate = new Date(item.initial_date);
+        const endDate = new Date(item.final_date);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.error("Data inválida encontrada:", item);
+            return;
+        }
+
+        // Número total de dias no período
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        let current = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1);
+
+        while (current <= endDate) {
+            const monthKey = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, '0')}`;
+
+            const monthStart = new Date(current.getUTCFullYear(), current.getUTCMonth(), 1);
+            const monthEnd = new Date(current.getUTCFullYear(), current.getUTCMonth() + 1, 0);
+
+            // Calculando os dias do período dentro desse mês
+            const start = Math.max(monthStart.getTime(), startDate.getTime());
+            const end = Math.min(monthEnd.getTime(), endDate.getTime());
+            const daysInMonthCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+            // Rentabilidade proporcional ao número de dias do mês
+            const monthRentability = (daysInMonthCount / totalDays) * item.rentability;
+
+            let existing = groupedData.find(d => d.month === monthKey);
+            if (!existing) {
+                existing = { month: monthKey, totalRentability: 0 };
+                groupedData.push(existing);
+            }
+            existing.totalRentability += monthRentability;
+
+            // Avança para o próximo mês
+            current.setMonth(current.getMonth() + 1);
+        }
+    });
+
+    // Filtra apenas os meses que possuem registros válidos
+    const validMonths = new Set(data.map(item => {
+        return `${new Date(item.initial_date).getUTCFullYear()}-${String(new Date(item.initial_date).getUTCMonth() + 1).padStart(2, '0')}`;
+    }));
+
+    const filteredGroupedData = groupedData.filter(d => validMonths.has(d.month));
+
+    return filteredGroupedData;
+}
+
