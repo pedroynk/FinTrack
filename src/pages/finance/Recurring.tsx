@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
-import { CheckCircle, Loader2, Trash2 } from "lucide-react";
+import { CheckCircle, ChevronDown, Loader2, Trash2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/DatePicker";
 
@@ -36,6 +36,8 @@ export default function RecurringTransactions() {
   const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmOpenSoft, setConfirmOpenSoft] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
+
 
 
 
@@ -177,6 +179,55 @@ export default function RecurringTransactions() {
     setSelectedRecurring(null);
   }
 
+  // Função para calcular os meses das parcelas
+  function calculateInstallments(createdAt: string, validity: string | null) {
+    if (!validity) return "Essa recorrência não é um parcelamento";
+
+    const createdDate = new Date(createdAt);
+    const validityDate = new Date(validity);
+
+    let installments = [];
+    let currentDate = new Date(createdDate);
+
+    while (currentDate <= validityDate) {
+      const month = currentDate.toLocaleString("pt-BR", { month: "long" });
+      const year = currentDate.getFullYear();
+      installments.push({ label: `${month.charAt(0).toUpperCase() + month.slice(1)}/${year}`, number: installments.length + 1 });
+
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    return installments;
+  }
+
+  // Atualiza o JSON "paid_parcels" no banco
+  async function toggleParcelPayment(transactionId: string, installmentNumber: number, currentPaidParcels: number[]) {
+    const updatedParcels = currentPaidParcels.includes(installmentNumber)
+      ? currentPaidParcels.filter(p => p !== installmentNumber)
+      : [...currentPaidParcels, installmentNumber];
+
+    setRecurring(prevTransactions =>
+      prevTransactions.map(transaction =>
+        transaction.id === transactionId ? { ...transaction, paid_parcels: updatedParcels } : transaction
+      )
+    );
+
+    const { error } = await supabase
+      .from("recurring_transaction")
+      .update({ paid_parcels: updatedParcels })
+      .eq("id", transactionId);
+
+    if (error) {
+      console.error("Erro ao atualizar parcelas pagas:", error);
+
+      setRecurring(prevTransactions =>
+        prevTransactions.map(transaction =>
+          transaction.id === transactionId ? { ...transaction, paid_parcels: currentPaidParcels } : transaction
+        )
+      );
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       {loading ? (
@@ -198,7 +249,7 @@ export default function RecurringTransactions() {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-4">
-            <h1 className="text-2xl font-bold">Transações Recorrentes</h1>
+            <h1 className="text-2xl font-bold">Despesas Fixas</h1>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Dialog
                 open={open}
@@ -301,7 +352,6 @@ export default function RecurringTransactions() {
 
           {/* Tabela de Despesas Fixas */}
           <div className="p-4 bg-white shadow rounded-lg">
-            <h2 className="text-m font-semibold mb-4">Despesas Fixas</h2>
             <div className="w-full overflow-auto">
               <Table>
                 <TableHeader className="text-sm">
@@ -311,80 +361,130 @@ export default function RecurringTransactions() {
                     <TableHead className="text-sm">Descrição</TableHead>
                     <TableHead className="text-sm">Frequência</TableHead>
                     <TableHead className="text-sm">Validade</TableHead>
+                    <TableHead className="text-sm">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="text-sm">
-                  {recurringTransactions.map((recurring) => (
-                    <TableRow key={recurring.id}>
-                      <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>
-                      <TableCell>R${recurring.value?.toFixed(2)}</TableCell>
-                      <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
-                      <TableCell>{recurring.frequency}</TableCell>
-                      <TableCell>{recurring.validity || "Sem Validade"}</TableCell>
-                      <TableCell className="flex gap-2">
+                  {recurringTransactions.map((recurring) => {
+                    const installments = calculateInstallments(recurring.created_at, recurring.validity);
+                    const paidParcels = recurring.paid_parcels || []; // Garante que sempre seja um array
 
+                    return (
+                      <>
+                        <TableRow key={recurring.id}>
+                          <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>
+                          <TableCell>R${recurring.value?.toFixed(2)}</TableCell>
+                          <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
+                          <TableCell>{recurring.frequency}</TableCell>
+                          <TableCell>{recurring.validity || "Sem Validade"}</TableCell>
 
-                        <AlertDialog open={confirmOpenSoft && selectedRecurring?.id === recurring.id} 
-                                     onOpenChange={setConfirmOpenSoft}>
-                          <AlertDialogTrigger asChild>
+                          <TableCell className="flex gap-2">
+                            <AlertDialog open={confirmOpenSoft && selectedRecurring?.id === recurring.id}
+                              onOpenChange={setConfirmOpenSoft}>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSelectedRecurring(recurring)}
+                                >
+                                  <CheckCircle className="text-green-500" />
+                                </Button>
+                              </AlertDialogTrigger>
+
+                              <AlertDialogContent>
+                                <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                                <p>Esta ação não pode ser desfeita. Deseja marcar esta Recorrência como PAGA?</p>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setConfirmOpenSoft(false)}>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => {
+                                      softDeleteRecurring(recurring.id);
+                                      setConfirmOpenSoft(false);
+                                    }}
+                                  >
+                                    Marcar Recorrência como Paga
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+
+                            <AlertDialog open={confirmOpen && selectedRecurring?.id === recurring.id}
+                              onOpenChange={setConfirmOpen}>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSelectedRecurring(recurring)}
+                                >
+                                  <Trash2 className="text-red-500" />
+                                </Button>
+                              </AlertDialogTrigger>
+
+                              <AlertDialogContent>
+                                <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                                <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction onClick={deleteRecurring} disabled={loading === recurring.id}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setSelectedRecurring(recurring)}
+                              onClick={() => setExpandedRows((prev) => ({ ...prev, [recurring.id]: !prev[recurring.id] }))}
                             >
-                              <CheckCircle className="text-green-500" />
+                              <ChevronDown className={`transition-transform ${expandedRows[recurring.id] ? "rotate-180" : ""}`} />
                             </Button>
-                          </AlertDialogTrigger>
+                          </TableCell>
+                        </TableRow>
 
-                          <AlertDialogContent>
-                            <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-                            <p>Esta ação não pode ser desfeita. Deseja marcar esta Recorrência como PAGA?</p>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={() => setConfirmOpenSoft(false)}>
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => {
-                                  softDeleteRecurring(recurring.id);
-                                  setConfirmOpenSoft(false);
-                                }}
-                              >
-                                Marcar Recorrência como Paga
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {expandedRows[recurring.id] && (
+                          <TableRow className="bg-gray-100">
+                            <TableCell colSpan={7}>
+                              <div className="p-4 border rounded-lg">
+                                <h3 className="font-semibold">Parcelas</h3>
+                                <div className="space-y-2">
+                                  {typeof installments === "string" ? (
+                                    <p>{installments}</p>
+                                  ) : (
+                                    installments.map((installment, index) => {
+                                      const installmentNumber = index + 1;
+                                      const isPaid = paidParcels.includes(installmentNumber);
 
-                        <AlertDialog
-                          open={confirmOpen && selectedRecurring?.id === recurring.id}
-                          onOpenChange={setConfirmOpen}
-                        >
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSelectedRecurring(recurring)}
-                            >
-                              <Trash2 className="text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
+                                      return (
+                                        <div key={index} className="flex items-center justify-between p-2 border-b">
+                                          <span>{installment.label}</span>
 
-                          <AlertDialogContent>
-                            <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
-                            <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={() => setConfirmOpen(false)}>
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction onClick={deleteRecurring} disabled={loading === recurring.id}>
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => toggleParcelPayment(recurring.id, installmentNumber, paidParcels)}
+                                          >
+                                            {isPaid ? (
+                                              <XCircle className="text-red-500" />
+                                            ) : (
+                                              <CheckCircle className="text-green-500" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
