@@ -58,7 +58,7 @@ export default function TransactionsDashboard() {
             />
             <DashboardSummary totalIncome={totalIncome} totalExpenses={totalExpenses} />
             <DashboardCharts expensesByDate={expensesByDate} expensesByClass={expensesByClass} loading={loading} />
-            <DashboardTable transactions={filteredTransactions} totalPages={1} />
+            <DashboardTable transactions={filteredTransactions} />
         </div>
     );
 }

@@ -7,7 +7,11 @@ interface ChartContainerProps {
 }
 
 export function ChartContainer({ id, children, className = "" }: ChartContainerProps) {
-    return <div id={id} className={`chart-container ${className}`}>{children}</div>;
+    return (
+        <div id={id} className={`chart-container min-h-[300px] w-full ${className}`}>
+            {children}
+        </div>
+    );
 }
 
 

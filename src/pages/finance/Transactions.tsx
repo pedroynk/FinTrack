@@ -128,7 +128,7 @@ export default function Transactions() {
         duration: 2000,
       });
       fetchTransactions();
-      setOpenClass(false);
+      setOpen(false);
     }
   }
 
