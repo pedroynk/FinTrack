@@ -492,34 +492,80 @@ export async function createRentability(newRentability: any) {
     }
 
     let adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
+
     const rentability = ((finalValue - adjustedInitialValue) / adjustedInitialValue) * 100;
 
-    const { error } = await supabase.from("investment_rentability").insert([
+    const valueRentability = finalValue - adjustedInitialValue;
+
+    const natureId = valueRentability >= 0 ? 1 : 2;
+
+    const { data: investmentTypeData, error: typeError } = await supabase
+        .from("investment_type")
+        .select("description")
+        .eq("id", newRentability.type_id)
+        .single();
+
+    if (typeError || !investmentTypeData) {
+        toast({
+            title: "Erro",
+            description: "Falha ao buscar descrição do tipo de investimento.",
+            variant: "destructive",
+            duration: 2000,
+        });
+        return { success: false, error: typeError?.message };
+    }
+
+    const description = investmentTypeData.description;
+
+    const { error: rentabilityError } = await supabase.from("investment_rentability").insert([
         {
             ...newRentability,
             rentability,
+            value_rentability: valueRentability,
             initial_value: initialValue,
             final_value: finalValue,
             withdrawal_value: withdrawalValue,
             contribution_value: contributionValue,
+            class_id: 24,
         },
     ]);
 
-    if (error) {
+    if (rentabilityError) {
         toast({
             title: "Erro",
-            description: `Falha ao adicionar Rentabilidade: ${error.message}`,
+            description: `Falha ao adicionar Rentabilidade: ${rentabilityError.message}`,
             variant: "destructive",
             duration: 2000,
         });
-        return { success: false, error: error.message };
+        return { success: false, error: rentabilityError.message };
+    }
+
+    const { error: transactionError } = await supabase.from("transaction").insert([
+        {
+            nature_id: natureId,
+            class_id: 24,
+            description,
+            value: valueRentability,
+            date: newRentability.final_date,
+        },
+    ]);
+
+    if (transactionError) {
+        toast({
+            title: "Erro",
+            description: `Falha ao adicionar Transação: ${transactionError.message}`,
+            variant: "destructive",
+            duration: 2000,
+        });
+        return { success: false, error: transactionError.message };
     }
 
     toast({
         title: "Sucesso",
-        description: "Rentabilidade adicionada com sucesso!",
+        description: "Rentabilidade e transação registradas com sucesso!",
         duration: 2000,
     });
+
     return { success: true };
 }
 
