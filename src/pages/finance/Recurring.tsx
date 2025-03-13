@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/DatePicker";
 
@@ -35,6 +35,8 @@ export default function RecurringTransactions() {
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpenSoft, setConfirmOpenSoft] = useState(false);
+
 
 
   const [newRecurring, setNewRecurring] = useState<{
@@ -60,6 +62,7 @@ export default function RecurringTransactions() {
     const { data, error } = await supabase
       .from("recurring_transaction")
       .select("*, class:class_id(name)")
+      .neq("status", "FALSE")
       .order("value", { ascending: false });
 
     if (error) {
@@ -114,6 +117,32 @@ export default function RecurringTransactions() {
       fetchRecurringTransactions();
       setOpen(false);
     }
+  }
+
+  async function softDeleteRecurring(id: string) {
+    setLoading(id);
+
+    const { error } = await supabase
+      .from("recurring_transaction")
+      .update({ status: 0 })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: `Falha ao desativar: ${error.message}`,
+        variant: "destructive",
+        duration: 2000,
+      });
+    } else {
+      setRecurring((prev) => prev.filter((t) => t.id !== id));
+      toast({
+        title: "Desativado",
+        description: "Transação recorrente desativada!",
+        duration: 2000,
+      });
+    }
+    setLoading(null);
   }
 
   async function deleteRecurring() {
@@ -294,6 +323,38 @@ export default function RecurringTransactions() {
                       <TableCell>{recurring.validity || "Sem Validade"}</TableCell>
                       <TableCell className="flex gap-2">
 
+
+                        <AlertDialog open={confirmOpenSoft && selectedRecurring?.id === recurring.id} 
+                                     onOpenChange={setConfirmOpenSoft}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedRecurring(recurring)}
+                            >
+                              <CheckCircle className="text-green-500" />
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent>
+                            <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
+                            <p>Esta ação não pode ser desfeita. Deseja marcar esta Recorrência como PAGA?</p>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setConfirmOpenSoft(false)}>
+                                Cancelar
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  softDeleteRecurring(recurring.id);
+                                  setConfirmOpenSoft(false);
+                                }}
+                              >
+                                Marcar Recorrência como Paga
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
                         <AlertDialog
                           open={confirmOpen && selectedRecurring?.id === recurring.id}
                           onOpenChange={setConfirmOpen}
@@ -307,6 +368,7 @@ export default function RecurringTransactions() {
                               <Trash2 className="text-red-500" />
                             </Button>
                           </AlertDialogTrigger>
+
                           <AlertDialogContent>
                             <AlertDialogHeader>Tem certeza?</AlertDialogHeader>
                             <p>Esta ação não pode ser desfeita. Deseja remover esta Recorrência?</p>
