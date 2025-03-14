@@ -4,9 +4,7 @@ import * as React from "react";
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
-    PaginationLink,
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
@@ -24,15 +22,9 @@ import {
     useReactTable,
     Table as TanstackTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -165,30 +157,6 @@ export function DashboardTable({ transactions }: DashboardTableProps) {
                     }
                     className="max-w-sm"
                 />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Colunas <ChevronDown />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => (
-                                <DropdownMenuCheckboxItem
-                                    key={column.id}
-                                    className="capitalize"
-                                    checked={column.getIsVisible()}
-                                    onCheckedChange={(value) =>
-                                        column.toggleVisibility(!!value)
-                                    }
-                                >
-                                    {column.id}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
             </div>
             <div className="rounded-md border">
                 <Table>
@@ -237,22 +205,9 @@ export function DashboardTable({ transactions }: DashboardTableProps) {
                                 }}
                             />
                         </PaginationItem>
-                        {startPage > 0 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-                        {Array.from({ length: endPage - startPage }, (_, index) => (
-                            <PaginationItem key={startPage + index}>
-                                <PaginationLink
-                                    href="#"
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        table.setPageIndex(startPage + index);
-                                    }}
-                                    isActive={currentPage === startPage + index}
-                                >
-                                    {startPage + index + 1}
-                                </PaginationLink>
-                            </PaginationItem>
-                        ))}
-                        {endPage < totalPages && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                        {startPage > 0 && <PaginationItem></PaginationItem>}
+
+                        {endPage < totalPages && <PaginationItem></PaginationItem>}
                         <PaginationItem>
                             <PaginationNext
                                 href="#"

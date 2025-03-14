@@ -18,8 +18,8 @@ export function DashboardCharts({ expensesByDate, loading, expensesByClass }: Da
     const COLORS = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2"];
     const [numClasses, setNumClasses] = useState(5);
     const sortedExpenses = expensesByClass
-  .sort((a, b) => b.value - a.value)
-  .slice(0, numClasses);
+        .sort((a, b) => b.value - a.value)
+        .slice(0, numClasses);
 
 
     if (loading) {
@@ -27,125 +27,132 @@ export function DashboardCharts({ expensesByDate, loading, expensesByClass }: Da
     }
 
     return (
-        <div className="grid grid-cols-2 gap-6 p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 📉 Movimentações por Data */}
-                <Card className={"bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"}>
-                    <CardHeader>
-                        <CardTitle>Gastos por Período</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer id="finance-chart">
-                            <ResponsiveContainer width={"100%"} height={300}>
-                                <LineChart data={expensesByDate} margin={{ left: 12, right: 12 }}>
-                                    <CartesianGrid vertical={false} stroke="hsl(var(--muted))" />
-                                    <XAxis
-                                        dataKey="date"
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickMargin={8}
-                                        tickFormatter={(value) => value.slice(0, 3)}
-                                        stroke="hsl(var(--muted-foreground))"
-                                    />
-                                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Legend />
-                                    <Line
-                                        dataKey="value"
-                                        type="monotone"
-                                        stroke="hsl(var(--chart-1))"
-                                        strokeWidth={2}
-                                        dot={false}
-                                        name="Despesas (R$)"
-                                    />
-                                    <Line
-                                        dataKey="income"
-                                        type="monotone"
-                                        stroke="hsl(var(--chart-2))"
-                                        strokeWidth={2}
-                                        dot={false}
-                                        name="Receitas (R$)"
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+    {/* 📉 Movimentações por Data */}
+    <Card className="h-[550px] w-full flex flex-col">
+    <CardHeader>
+        <CardTitle>Gastos por Período</CardTitle>
+    </CardHeader>
+    <CardContent className="h-full flex items-center justify-center">
+        <ChartContainer id="finance-chart" className="w-full h-full">
+            <ResponsiveContainer width="100%" height={450}>
+                <LineChart data={expensesByDate} margin={{ left: 10, right: 12 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--muted))" />
+                    <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        stroke="hsl(var(--muted-foreground))"
+                    />
+                    <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        tickFormatter={(value) => `R$ ${value.toLocaleString("pt-BR", { useGrouping: false })}`} 
+                    />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Line
+                        dataKey="value"
+                        type="monotone"
+                        stroke="hsl(var(--chart-1))"
+                        strokeWidth={3}
+                        dot={true}
+                        name="Despesas (R$)"
+                    />
+                    <Line
+                        dataKey="income"
+                        type="monotone"
+                        stroke="hsl(var(--chart-2))"
+                        strokeWidth={3}
+                        dot={true}
+                        name="Receitas (R$)"
+                    />
+                </LineChart>
+            </ResponsiveContainer>
+        </ChartContainer>
+    </CardContent>
+</Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className={"bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"}>
-                    <ChartStyle id={id} />
-                    <CardHeader>
-                        <CardTitle>Gastos por Classe</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 justify-center pb-0">
-                        <ChartContainer id={id} className="mx-auto aspect-square w-full max-w-[300px]">
-                            <PieChart width={300} height={300}>
-                                <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                <Pie
-                                    data={sortedExpenses}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    innerRadius={60}
-                                    outerRadius={100}
-                                    strokeWidth={3}
-                                    activeIndex={activeIndex}
-                                    onMouseEnter={(_, index) => setActiveIndex(index)}
-                                    activeShape={({ outerRadius = 0, ...props }) => (
-                                        <g>
-                                            <Sector {...props} outerRadius={outerRadius + 10} />
-                                            <Sector {...props} outerRadius={outerRadius + 25} innerRadius={outerRadius + 12} />
-                                        </g>
-                                    )}
-                                >
-                                    {sortedExpenses.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    <Label
-                                        content={({ viewBox }) => {
-                                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                                return (
-                                                    <text
-                                                        x={viewBox.cx}
-                                                        y={viewBox.cy}
-                                                        textAnchor="middle"
-                                                        dominantBaseline="middle"
-                                                    >
-                                                        <tspan
-                                                            x={viewBox.cx}
-                                                            y={viewBox.cy}
-                                                            className="fill-foreground text-3xl font-bold"
-                                                        >
-                                                            {expensesByClass[activeIndex]?.value?.toLocaleString() ?? "0"}
-                                                        </tspan>
-                                                        <tspan
-                                                            x={viewBox.cx}
-                                                            y={(viewBox.cy || 0) + 24}
-                                                            className="fill-muted-foreground"
-                                                        >
-                                                            {expensesByClass[activeIndex]?.name ?? ""}
-                                                        </tspan>
-                                                    </text>
-                                                );
-                                            }
-                                        }}
-                                    />
-                                </Pie>
-                            </PieChart>
-                            <Slider
-        defaultValue={[numClasses]}
-        max={expensesByClass.length}
-        min={5}
-        step={1}
-        className="w-[100%]"
-        onValueChange={(value) => setNumClasses(value[0])}
-      />
 
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            </div>
+    {/* 📊 Gastos por Classe */}
+    <div className="flex justify-end">
+    <Card className="h-[550px] w-full flex flex-col">
+    <ChartStyle id={id} />
+    <CardHeader className="w-full flex justify-start">
+        <CardTitle>Gastos por Classe</CardTitle>
+    </CardHeader>
+    <CardContent className="flex flex-col items-center justify-center w-full">
+        <ChartContainer id={id} className="mx-auto aspect-square w-full max-w-[400px] flex justify-center">
+            <PieChart width={400} height={400}>
+                <Tooltip content={<ChartTooltipContent hideLabel />} />
+                <Pie
+                    data={sortedExpenses}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={100}
+                    outerRadius={140}
+                    strokeWidth={3}
+                    activeIndex={activeIndex}
+                    onMouseEnter={(_, index) => setActiveIndex(index)}
+                    activeShape={({ outerRadius = 0, ...props }) => (
+                        <g>
+                            <Sector {...props} outerRadius={outerRadius + 10} />
+                            <Sector {...props} outerRadius={outerRadius + 25} innerRadius={outerRadius + 12} />
+                        </g>
+                    )}
+                >
+                    {sortedExpenses.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                    <Label
+                        content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                return (
+                                    <text
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        textAnchor="middle"
+                                        dominantBaseline="middle"
+                                    >
+                                        <tspan
+                                            x={viewBox.cx}
+                                            y={viewBox.cy}
+                                            className="fill-foreground text-2xl font-bold"
+                                        >
+                                            {expensesByClass[activeIndex]?.value
+                                                ? `R$ ${expensesByClass[activeIndex].value.toLocaleString("pt-BR")}`
+                                                : "R$ 0"}
+                                        </tspan>
+                                        <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) + 30}
+                                            className="fill-muted-foreground"
+                                        >
+                                            {expensesByClass[activeIndex]?.name ?? ""}
+                                        </tspan>
+                                    </text>
+                                );
+                            }
+                        }}
+                    />
+                </Pie>
+            </PieChart>
+        </ChartContainer>
+        <div className="w-full flex flex-col items-center mt-8">
+            <h3 className="text-3x1 font-medium">Classes exibidas: {numClasses}</h3>
+            <Slider
+                defaultValue={[numClasses]}
+                max={expensesByClass.length}
+                min={1}
+                step={1}
+                className="w-full"
+                onValueChange={(value) => setNumClasses(value[0])}
+            />
         </div>
+    </CardContent>
+</Card>
+    </div>
+</div>
     );
 }
