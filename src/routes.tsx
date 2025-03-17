@@ -11,7 +11,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Dashboard = lazy(() => import("./pages/admin/home/Dashboard"));
 const Transactions = lazy(() => import("./pages/admin/finance/Transactions"));
 const Investments = lazy(() => import("./pages/admin/finance/Investments"));
-const Recurring = lazy(() => import("./pages/admin/finance/Recurring"));
+//const Recurring = lazy(() => import("./pages/admin/finance/Recurring"));
 
 
 const Dimensions = lazy(() => import("./pages/admin/finance/Dimensions"));
@@ -53,14 +53,14 @@ const router = createBrowserRouter([
                   </Suspense>
                 ),
               },
-              {
+              /*{
                 path: "recurring",
                 element: (
                   <Suspense fallback={<LoadingFallback />}>
                     <Recurring />
                   </Suspense>
                 ),
-              },
+              },*/
               {
                 path: "transactions",
                 element: (
