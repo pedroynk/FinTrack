@@ -11,6 +11,7 @@ export function TeamSwitcher() {
         <SidebarMenuButton
           size="lg"
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          onClick={() => {window.location.href = "/"}}
         >
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <img src="/logo.webp" alt="" />

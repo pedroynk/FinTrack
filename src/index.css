@@ -61,20 +61,45 @@
 
 @layer base {
   * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-
-
-@layer base {
-  * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
 }
+
+/* body{
+  cursor: none;
+}
+
+.custom-cursor {
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+} */
+
+::selection {
+  background-color: #FACC15;
+  color: #0a0a0a;
+}
+
+/* @keyframes click {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+} */
+
+/* .cursor-click {
+  animation: click 0.3s ease-in-out;
+} */

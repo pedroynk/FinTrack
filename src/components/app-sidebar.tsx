@@ -1,6 +1,7 @@
 import * as React from "react"
 import {
-  PiggyBank
+  PiggyBank,
+  Clapperboard
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -36,41 +37,38 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "/finance/dashboard", // Atualizado
+          url: "/admin",
         },
         {
           title: "Investimentos",
-          url: "/finance/investments", // Atualizado
+          url: "/admin/finance/investments",
         },
         {
-          title: "Recorrências",
-          url: "/finance/recurring", // Atualizado
+          title: "Parcelas",
+          url: "/admin/finance/recurring",
         },
         {
           title: "Transações",
-          url: "/finance/transactions", // Atualizado
+          url: "/admin/finance/transactions",
+        },
+        {
+          title: "Dimensões",
+          url: "/admin/finance/dimensions",
         }
       ],
     },
-    // {
-    //   title: "Models",
-    //   url: "#",
-    //   icon: Bot,
-    //   items: [
-    //     {
-    //       title: "Genesis",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Explorer",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Quantum",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
+    {
+      title: "Cinema",
+      icon: Clapperboard,
+      url: "#",
+      isActive: true,
+      items: [
+        {
+          title: "Filmes",
+          url: "/admin/movies",
+        }
+      ],
+    },
     // {
     //   title: "Documentation",
     //   url: "#",
