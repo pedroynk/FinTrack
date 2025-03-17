@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/DatePicker";
-import { fetchInvestmentTypes, fetchBrokers, fetchNatures, fetchIncomes, createInvestment, createInvestmentType, createRentability, fetchInvestmentNames } from "@/api/investment";
+import { fetchInvestmentTypes, fetchBrokers, fetchNatures, createInvestment, createInvestmentType, createRentability, fetchInvestmentNames } from "@/api/investment";
 import { toast } from "@/hooks/use-toast";
 
 // Definição de Tipos
@@ -29,11 +29,6 @@ interface Broker {
 }
 
 interface Nature {
-    id: number;
-    name: string;
-}
-
-interface Income {
     id: number;
     name: string;
 }
@@ -62,7 +57,6 @@ export function InvestmentFormDialog() {
     const [types, setTypes] = useState<InvestmentType[]>([]);
     const [brokers, setBrokers] = useState<Broker[]>([]);
     const [natures, setNatures] = useState<Nature[]>([]);
-    const [incomes, setIncomes] = useState<Income[]>([]);
     const [names, setNames] = useState<InvestmentName[]>([]);
 
 
@@ -94,7 +88,6 @@ export function InvestmentFormDialog() {
             setTypes(await fetchInvestmentTypes());
             setBrokers(await fetchBrokers());
             setNatures(await fetchNatures());
-            setIncomes(await fetchIncomes());
             setNames(await fetchInvestmentNames());
         }
         loadData();
