@@ -68,6 +68,7 @@ export function TransactionsTable({
                 <TableHead>Natureza</TableHead>
               </>
             )}
+            <TableHead>Tipo</TableHead>
             <TableHead>Classe</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Descrição</TableHead>
@@ -84,6 +85,7 @@ export function TransactionsTable({
                   <TableCell>{t.class?.type?.nature?.name}</TableCell>
                 </>
               )}
+              <TableCell>{t.class?.type?.name}</TableCell>
               <TableCell>{t.class?.name}</TableCell>
               <TableCell className="text-center">R$ {t.value}</TableCell>
               <TableCell>{t.description}</TableCell>

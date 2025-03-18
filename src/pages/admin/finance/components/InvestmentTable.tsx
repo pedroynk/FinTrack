@@ -156,7 +156,7 @@ const investmentColumns: ColumnDef<InvestmentGeral>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <div className="text-right">R$ {(row.getValue("updatedValue") as number).toFixed(2)}</div>
+      <div className="text-centar">R$ {(row.getValue("updatedValue") as number).toFixed(2)}</div>
     ),
   },
   {

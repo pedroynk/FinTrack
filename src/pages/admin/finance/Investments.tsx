@@ -13,7 +13,7 @@ import { InvestmentCharts } from "@/pages/admin/finance/components/InvestmentCha
 import { InvestmentFormDialog } from "@/pages/admin/finance/components/InvestmentFormDialog";
 import { InvestmentTables } from "@/pages/admin/finance/components/InvestmentTable";
 
-const COLORS = ["#FACD19", "#00C49F", "#FFBB28", "#FF8042", "#D32F2F", "#7B1FA2"];
+const COLORS = ["#7500ff", "#fffa00", "#0009bd", "#FF8042", "#ff0000", "#00a92b"];
 
 export default function Investments() {
     const [investmentsGeral, setInvestmentsGeral] = useState<any[]>([]);
@@ -67,7 +67,7 @@ export default function Investments() {
 
     return (
         <div className="p-6 space-y-6">
-            <InvestmentSummary totalInvested={totalInvested} totalUpdated={totalUpdated} totalGain={totalGain} />
+            <InvestmentSummary totalInvested={totalInvested} totalUpdated={totalUpdated} totalGain={totalGain}   />
             <InvestmentFormDialog />
             <InvestmentCharts pieChartData={pieChartData} incomeChartData={incomeChartData} barChartData={barChartData} lineChartData={lineChartData} COLORS={COLORS}/>
             <InvestmentTables investmentsGeral={investmentsGeral} movements={movements} />

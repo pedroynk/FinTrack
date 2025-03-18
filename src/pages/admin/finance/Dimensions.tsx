@@ -29,6 +29,7 @@ export default function Dimensions() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       <TypeManager natures={natures} types={types} refetchTypes={refreshTypes}/>
       <ClassManager types={types}/>
+
     </div>
   );
 }
