@@ -542,11 +542,10 @@ export async function createRentability(newRentability: any) {
 
     const { error: transactionError } = await supabase.from("transaction").insert([
         {
-            nature_id: natureId,
             class_id: 24,
             description,
             value: valueRentability,
-            date: newRentability.final_date,
+            transaction_at: newRentability.final_date,
         },
     ]);
 

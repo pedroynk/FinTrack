@@ -71,7 +71,7 @@ export default function Dashboard() {
         formatValue: (value: number) => {return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
       },
       {
-        title: "Poupado",
+        title: "Saldo",
         value: receitaTotal - despesaTotal,
         color: "text-yellow-600 border-yellow-500",
         description: null,

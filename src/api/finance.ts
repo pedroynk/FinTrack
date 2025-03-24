@@ -19,6 +19,7 @@ export async function fetchTypes(): Promise<Type[]> {
       nature:nature_id(name)
     `)
 
+
   if (error) throw new Error(error.message);
   
   return data || []
@@ -172,7 +173,6 @@ export async function fetchTransactions(
   return data || [];
 }
 
-
 export async function createTransactionApi(newTransaction: TransactionCreateRequest) {
   const { error } = await supabase.from("transaction").insert([newTransaction]);
   if (error) throw error;
@@ -202,7 +202,7 @@ export async function updateTransactionApi(
     .from("transaction")
     .update(transactionPayload)
     .match({ id: transactionId });
-    
+
   if (error) {
     throw error;
   }

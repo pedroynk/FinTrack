@@ -1,35 +1,27 @@
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
-interface InvestmentSummaryProps {
-  totalInvested: number;
-  totalUpdated: number;
-  totalGain: number;
+interface RecurringSummaryProps {
+    totalFixesReceivable: number;
+    totalFixesPay: number;
 }
 
-export function InvestmentSummary({ totalInvested, totalUpdated, totalGain }: InvestmentSummaryProps) {
+export function RecurringSummary({ totalFixesReceivable, totalFixesPay }: RecurringSummaryProps) {
   const formatValue = (value: number) =>
     `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const data = [
     {
-      title: "Saldo Atual",
-      value: totalUpdated,
-      color: "text-purple-700",
-      borderColor: "border-purple-700",
+      title: "Total a Receber",
+      value: totalFixesReceivable,
+      color: "text-green-500",
+      borderColor: "border-green-500",
       formatValue,
     },
     {
-      title: "Total Investido",
-      value: totalInvested,
-      color: "text-yellow-300",
-      borderColor: "border-yellow-300",
-      formatValue,
-    },
-    {
-      title: "Saldo Acumulado",
-      value: totalGain,
-      color: totalGain >= 0 ? "text-green-500" : "text-red-500",
-      borderColor: totalGain >= 0 ? "border-green-500" : "border-red-500",
+      title: "Total a Pagar",
+      value: totalFixesPay,
+      color: "text-red-500",
+      borderColor: "border-red-500",
       formatValue,
     }
   ];
