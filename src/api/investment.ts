@@ -497,8 +497,6 @@ export async function createRentability(newRentability: any) {
 
     const valueRentability = finalValue - adjustedInitialValue;
 
-    const natureId = valueRentability >= 0 ? 1 : 2;
-
     const { data: investmentTypeData, error: typeError } = await supabase
         .from("investment_type")
         .select("description")
