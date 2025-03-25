@@ -39,35 +39,35 @@ import { Type, Nature, TypeCreateRequest, TypeUpdateRequest } from "@/types/fina
 const ICON_OPTIONS = [
   "wrench",
   "utensils",
-  "activity",      
-  "briefcase",     
-  "dollar-sign",   
-  "credit-card",   
-  "shopping-bag",  
-  "shopping-cart", 
-  "heart",         
-  "coffee",        
-  "home",          
-  "car",           
-  "book",          
-  "plane",         
-  "gift",          
-  "music",         
-  "film",          
-  "calendar",      
-  "clock",         
-  "globe",         
-  "map-pin",       
-  "umbrella",      
-  "truck",         
-  "bell",          
-  "bar-chart-2",   
-  "award",      
+  "activity",
+  "briefcase",
+  "dollar-sign",
+  "credit-card",
+  "shopping-bag",
+  "shopping-cart",
+  "heart",
+  "coffee",
+  "home",
+  "car",
+  "book",
+  "plane",
+  "gift",
+  "music",
+  "film",
+  "calendar",
+  "clock",
+  "globe",
+  "map-pin",
+  "umbrella",
+  "truck",
+  "bell",
+  "bar-chart-2",
+  "award",
   "ticket",
   "tv"
 ];
 
-function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], types: Type[], refetchTypes: () => void}) {
+function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], types: Type[], refetchTypes: () => void }) {
   const [newType, setNewType] = useState<TypeCreateRequest>({
     name: "",
     hex_color: null,
@@ -222,11 +222,19 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
               </SelectItem>
               {ICON_OPTIONS.map((icon) => (
                 <SelectItem key={icon} value={icon || "null"}>
-                  {icon}
+                  <div className="flex items-center">
+                    <DynamicIcon
+                      name={icon as IconName}
+                      size={16}
+                      className="mr-2"
+                    />
+                    <span>{icon}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
           <Button onClick={handleCreate}>Criar Tipo</Button>
         </div>
 
@@ -381,8 +389,8 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                           <SelectTrigger>
                             {editingType.nature_id
                               ? natures.find(
-                                  (n) => n.id == editingType.nature_id
-                                )?.name
+                                (n) => n.id == editingType.nature_id
+                              )?.name
                               : "Select Nature"}
                           </SelectTrigger>
                           <SelectContent>

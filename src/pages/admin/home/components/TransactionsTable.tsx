@@ -64,13 +64,7 @@ export const columns: ColumnDef<Transaction>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-right text-xs">
-        {
-           new Date(row.getValue("transaction_at")).toISOString()
-           .substring(0, 10)
-           .split('-')
-           .reverse()
-           .join('/')
-        }
+        {(row.getValue("transaction_at") as string).split('-').reverse().join('/')}
       </div>
     ),
   },

@@ -87,10 +87,11 @@ export function RecurringTable({
                   <TableCell>{recurring.description || "Sem Descrição"}</TableCell>
                   <TableCell>{recurring.frequency}</TableCell>
                   <TableCell>
-                    {new Date(recurring.validity).toLocaleDateString() === "12/31/1969"
-                      ? "Sem Validade"
-                      : new Date(recurring.validity).toLocaleDateString("pt-BR")}
+                    {typeof recurring.validity === "string" && recurring.validity !== "Invalid Date"
+                      ? recurring.validity.split('-').reverse().join('/')
+                      : "Sem Validade"}
                   </TableCell>
+
                   <TableCell className="flex gap-2">
                     <Button
                       variant="ghost"

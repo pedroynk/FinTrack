@@ -89,7 +89,10 @@ export function TransactionsTable({
               <TableCell>{t.class?.name}</TableCell>
               <TableCell className="text-center">R$ {t.value}</TableCell>
               <TableCell>{t.description}</TableCell>
-              <TableCell>{new Date(t.transaction_at).toLocaleDateString()}</TableCell>
+              <TableCell>
+  {t.transaction_at.split('-').reverse().join('/')}
+</TableCell>
+
               <TableCell className="flex gap-2">
                 {/* Edit Button */}
                 <Button

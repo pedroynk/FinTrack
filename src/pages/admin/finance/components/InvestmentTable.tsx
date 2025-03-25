@@ -91,7 +91,9 @@ const movementColumns: ColumnDef<Movement>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <div>{row.getValue("date")}</div>
+<div>
+  {(row.getValue("date") as string).split('-').reverse().join('/')}
+</div>
     ),
   },
   {
