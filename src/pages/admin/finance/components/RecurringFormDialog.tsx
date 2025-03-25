@@ -212,7 +212,7 @@ export function RecurringFormDialog({
                 <SelectItem value="Semanal">Semanal</SelectItem>
               </SelectContent>
             </Select>
-            <Label>Data</Label>
+            <Label>Vencimento</Label>
             <DatePicker
               date={newRecurring.validity ? new Date(newRecurring.validity) : undefined}
               onSelect={(date: Date | undefined, _event?: any) =>

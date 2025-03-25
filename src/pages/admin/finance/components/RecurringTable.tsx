@@ -222,8 +222,8 @@ export function RecurringTable({
 
           <p>
             {paymentAction === "mark"
-              ? "Deseja marcar esta parcela como paga? Será registrada como transação."
-              : "Deseja desmarcar esta parcela como paga?"}
+              ? "Deseja marcar esta parcela como paga? A transação correspondente será registrada automaticamente."
+              : "Deseja cancelar o pagamento desta parcela? Esta ação não excluirá a transação que foi criada quando a parcela foi marcada como paga."}
           </p>
 
           <AlertDialogFooter>
