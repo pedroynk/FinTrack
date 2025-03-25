@@ -64,7 +64,8 @@ const ICON_OPTIONS = [
   "bar-chart-2",
   "award",
   "ticket",
-  "tv"
+  "tv", 
+  "cpu"
 ];
 
 function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], types: Type[], refetchTypes: () => void }) {
