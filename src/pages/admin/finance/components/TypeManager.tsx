@@ -65,7 +65,8 @@ const ICON_OPTIONS = [
   "award",
   "ticket",
   "tv", 
-  "cpu"
+  "cpu",
+  "dribbble"
 ];
 
 function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], types: Type[], refetchTypes: () => void }) {
