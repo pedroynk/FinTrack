@@ -96,7 +96,7 @@ export function InvestmentFormDialog() {
     async function handleCreateInvestment() {
         const response = await createInvestment(newInvestment);
         if (response.success) {
-            toast({ title: "Sucesso", description: "Investimento adicionado!", duration: 2000 });
+            toast({ title: "Sucesso", description: "Movimentação adicionada!", duration: 2000 });
             setOpen(false);
         } else {
             toast({ title: "Erro", description: response.error, variant: "destructive", duration: 2000 });
@@ -137,14 +137,21 @@ export function InvestmentFormDialog() {
                     <div className="grid grid-cols-1 gap-4">
                         <Label>Data</Label>
                         <DatePicker
-                            date={newInvestment.date ? new Date(newInvestment.date) : new Date()}
+                            date={
+                                newInvestment.date &&
+                                    !isNaN(new Date(newInvestment.date).getTime())
+                                    ? new Date(newInvestment.date)
+                                    : new Date()
+                            }
                             onSelect={(date) =>
                                 setNewInvestment({
                                     ...newInvestment,
-                                    date: date ? date.toISOString() : new Date().toISOString(),
+                                    date: date
+                                        ? date.toISOString()
+                                        : new Date().toISOString(),
                                 })
                             }
-                        />
+                        />
                         <Label>Movimento</Label>
                         <Select onValueChange={(value) => setNewInvestment({ ...newInvestment, nature_id: Number(value) })} value={newInvestment.nature_id.toString()}>
                             <SelectTrigger className="w-full">

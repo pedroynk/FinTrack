@@ -91,9 +91,9 @@ const movementColumns: ColumnDef<Movement>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-<div>
-  {(row.getValue("date") as string).split('-').reverse().join('/')}
-</div>
+      <div>
+        {(row.getValue("date") as string).split('-').reverse().join('/')}
+      </div>
     ),
   },
   {
@@ -158,7 +158,7 @@ const investmentColumns: ColumnDef<InvestmentGeral>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <div className="text-centar">R$ {(row.getValue("updatedValue") as number).toFixed(2)}</div>
+      <div className="text-center">R$ {(row.getValue("updatedValue") as number).toFixed(2)}</div>
     ),
   },
   {
@@ -182,6 +182,10 @@ const investmentColumns: ColumnDef<InvestmentGeral>[] = [
 ];
 
 export function InvestmentTables({ movements, investmentsGeral }: InvestmentTablesProps) {
+  // Filtra os movimentos e investimentos com valores maiores que 0
+  const filteredMovements = movements.filter((m) => m.value > 0);
+  const filteredInvestments = investmentsGeral.filter((i) => i.updatedValue > 0);
+
   return (
     <Tabs defaultValue="movements" className="space-y-4">
       <TabsList>
@@ -189,10 +193,10 @@ export function InvestmentTables({ movements, investmentsGeral }: InvestmentTabl
         <TabsTrigger value="movements">Movimentações</TabsTrigger>
       </TabsList>
       <TabsContent value="movements">
-        <DataTable data={movements} columns={movementColumns} />
+        <DataTable data={filteredMovements} columns={movementColumns} />
       </TabsContent>
       <TabsContent value="investments">
-        <DataTable data={investmentsGeral} columns={investmentColumns} />
+        <DataTable data={filteredInvestments} columns={investmentColumns} />
       </TabsContent>
     </Tabs>
   );
