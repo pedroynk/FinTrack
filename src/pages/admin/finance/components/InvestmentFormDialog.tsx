@@ -5,13 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/DatePicker";
-import { fetchInvestmentTypes, fetchBrokers, fetchNatures, createInvestment, createInvestmentType, createRentability, fetchInvestmentNames } from "@/api/investment";
+import { fetchInvestmentTypes, fetchNatures, createInvestment, createInvestmentType, createRentability, fetchInvestmentNames } from "@/api/investment";
 import { toast } from "@/hooks/use-toast";
 
 // Definição de Tipos
 interface Investment {
     type_id: number;
-    broker_id: number;
     nature_id: number;
     value: number;
     date: string;
@@ -21,11 +20,6 @@ interface InvestmentType {
     id: number;
     name: string;
     description: string;
-}
-
-interface Broker {
-    id: number;
-    name: string;
 }
 
 interface Nature {
@@ -55,14 +49,12 @@ export function InvestmentFormDialog() {
     const [openRentability, setOpenRentability] = useState(false);
 
     const [types, setTypes] = useState<InvestmentType[]>([]);
-    const [brokers, setBrokers] = useState<Broker[]>([]);
     const [natures, setNatures] = useState<Nature[]>([]);
     const [names, setNames] = useState<InvestmentName[]>([]);
 
 
     const [newInvestment, setNewInvestment] = useState<Investment>({
         type_id: 0,
-        broker_id: 0,
         nature_id: 0,
         value: 0,
         date: "",
@@ -86,7 +78,6 @@ export function InvestmentFormDialog() {
     useEffect(() => {
         async function loadData() {
             setTypes(await fetchInvestmentTypes());
-            setBrokers(await fetchBrokers());
             setNatures(await fetchNatures());
             setNames(await fetchInvestmentNames());
         }
@@ -101,6 +92,7 @@ export function InvestmentFormDialog() {
         } else {
             toast({ title: "Erro", description: response.error, variant: "destructive", duration: 2000 });
         }
+        
     }
 
     async function handleCreateInvestmentType() {
@@ -151,7 +143,7 @@ export function InvestmentFormDialog() {
                                         : new Date().toISOString(),
                                 })
                             }
-                        />
+                        />
                         <Label>Movimento</Label>
                         <Select onValueChange={(value) => setNewInvestment({ ...newInvestment, nature_id: Number(value) })} value={newInvestment.nature_id.toString()}>
                             <SelectTrigger className="w-full">
@@ -178,20 +170,6 @@ export function InvestmentFormDialog() {
                                 {types.map((t) => (
                                     <SelectItem key={t.id} value={t.id.toString()}>
                                         {t.description}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Label>Corretora</Label>
-                        <Select onValueChange={(value) => setNewInvestment({ ...newInvestment, broker_id: Number(value) })} value={newInvestment.broker_id.toString()}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione a Corretora" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {brokers.map((b) => (
-                                    <SelectItem key={b.id} value={b.id.toString()}>
-                                        {b.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

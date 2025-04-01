@@ -7,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 export interface InvestmentMovement {
     type_id: number;
     value: number;
-    broker_id: number;
     nature_id?: number;
 }
 
@@ -16,18 +15,12 @@ export interface InvestmentType {
     description: string;
 }
 
-export interface Broker {
-    id: number;
-    name: string;
-}
-
 export interface InvestmentSummary {
     name: string;
     income_name: string;
     description: string;
     totalValue: number;
     updatedValue: number;
-    broker: string
     income_id: number;
 }
 
@@ -37,7 +30,7 @@ export interface InvestmentSummary {
 export async function fetchInvestmentSummary() {
     const { data: movements, error } = await supabase
         .from("investment_movement")
-        .select("type_id, value, broker_id, nature_id");
+        .select("type_id, value, nature_id");
 
     if (error) {
         console.error("Erro ao buscar investimentos:", error.message);
@@ -71,15 +64,6 @@ export async function fetchInvestmentSummary() {
         return { investments: [], invested: 0, updated: 0, gain: 0 };
     }
 
-    const { data: brokers, error: brokerError } = await supabase
-        .from("broker")
-        .select("id, name");
-
-    if (brokerError) {
-        console.error("Erro ao buscar corretoras:", brokerError.message);
-        return { investments: [], invested: 0, updated: 0, gain: 0 };
-    }
-
     const { data: rentabilities, error: rentabilityError } = await supabase
         .from("investment_rentability")
         .select("type_id, rentability")
@@ -90,7 +74,6 @@ export async function fetchInvestmentSummary() {
         return { investments: [], invested: 0, updated: 0, gain: 0 };
     }
 
-    const brokerMap = Object.fromEntries(brokers.map(b => [b.id, b.name]));
     const investmentNameMap = Object.fromEntries(investmentNames.map(n => [n.id, { name: n.name, income_id: n.income_id }]));
     const investmentIncomeMap = Object.fromEntries(investmentIncomes.map(i => [i.id, i.name]));
     const investmentTypeMap = Object.fromEntries(
@@ -113,11 +96,10 @@ export async function fetchInvestmentSummary() {
     const groupedInvestments = movements.reduce<Record<string, any>>((acc, item) => {
         const investmentData = investmentTypeMap[item.type_id] || { name_id: 0, description: "Sem descrição" };
         const nameData = investmentNameMap[investmentData.name_id] || { name: "Desconhecido", income_id: 0 };
-        const brokerName = brokerMap[item.broker_id] || "Sem corretora";
         const incomeName = investmentIncomeMap[nameData.income_id] || "Renda não especificada";
         const rentability = rentabilityMap[item.type_id] || 0;
 
-        const key = `${nameData.name}-${investmentData.description}-${brokerName}-${incomeName}`;
+        const key = `${nameData.name}-${investmentData.description}-${incomeName}`;
         const adjustedValue = item.nature_id === 1 ? item.value : -item.value;
 
         if (!acc[key]) {
@@ -127,7 +109,6 @@ export async function fetchInvestmentSummary() {
                 description: investmentData.description,
                 totalValue: 0,
                 updatedValue: 0,
-                broker: brokerName,
                 lastRentability: rentability
             };
         }
@@ -164,12 +145,6 @@ export async function fetchInvestmentTypes() {
 export async function fetchInvestmentNames() {
     const { data, error } = await supabase.from("investment_name").select("*");
     if (error) console.error("Erro ao buscar nome de investimento:", error.message);
-    return data || [];
-}
-
-export async function fetchBrokers() {
-    const { data, error } = await supabase.from("broker").select("*");
-    if (error) console.error("Erro ao buscar corretoras:", error.message);
     return data || [];
 }
 

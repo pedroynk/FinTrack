@@ -25,7 +25,6 @@ interface InvestmentGeral {
   name: string;
   description: string;
   updatedValue: number;
-  broker: string;
   income_name: string;
 }
 
@@ -160,15 +159,6 @@ const investmentColumns: ColumnDef<InvestmentGeral>[] = [
     cell: ({ row }) => (
       <div className="text-center">R$ {(row.getValue("updatedValue") as number).toFixed(2)}</div>
     ),
-  },
-  {
-    accessorKey: "broker",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Corretora <ArrowUpDown />
-      </Button>
-    ),
-    cell: ({ row }) => <div>{row.getValue("broker") as string}</div>,
   },
   {
     accessorKey: "income_name",
