@@ -34,13 +34,11 @@ export async function fetchTypes(): Promise<Type[]> {
     `)
 
   if (error) throw new Error(error.message);
-  
+
   return data || []
 }
 
 export async function fetchRecurringTransactions(
-  page: number = 1,
-  pageSize: number = 10,
   startDateTZString: string | null = null,
   endDateTZString: string | null = null
 ): Promise<RecurringTransaction[]> {
@@ -51,7 +49,6 @@ export async function fetchRecurringTransactions(
     )
     .neq("status", "FALSE")
     .order("id", { ascending: false })
-    .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (startDateTZString) {
     query = query.gte("created_at", startDateTZString);
