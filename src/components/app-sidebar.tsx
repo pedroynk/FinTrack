@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   PiggyBank,
-  Clapperboard,
   Trophy
 } from "lucide-react"
 

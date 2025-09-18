@@ -70,22 +70,18 @@ const rankingData: User[] = [
 ];
 
 export const RankingPage = () => {
-  const [users, setUsers] = useState<User[]>(rankingData);
+  const [users] = useState<User[]>(rankingData);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
 
-  const handleAddToNetwork = (userId: number) => {
-    toast.success("Usuário adicionado à sua rede!");
-  };
-
-  const handleRemoveFromNetwork = (userId: number) => {
+  const handleRemoveFromNetwork = () => {
     setIsDialogOpen(false);
     toast.success("Usuário removido da sua rede!");
   };
 
-  const handleBlockUser = (userId: number) => {
+  const handleBlockUser = () => {
     toast.success("Usuário bloqueado!");
     setIsDialogOpen(false);
   };
