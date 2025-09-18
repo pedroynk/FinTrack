@@ -1,7 +1,8 @@
 import * as React from "react"
 import {
   PiggyBank,
-  Clapperboard
+  Clapperboard,
+  Trophy
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -53,11 +54,31 @@ const data = {
         },
         {
           title: "Dimensões",
-          url: "/admin/finance/dimensions",
+          url: "/dimensions",
         }
       ],
     },
     {
+      title: "Social",
+      icon: Trophy,
+      url: "#",
+      isActive: true,
+      items: [
+        {
+          title: "Despesa",
+          url: "/admin/social",
+        },
+        {
+          title: "Receita",
+          url: "/admin/social",
+        },
+        {
+          title: "Saldo",
+          url: "/admin/social",
+        }
+      ],
+    },
+   /*  {
       title: "Cinema",
       icon: Clapperboard,
       url: "#",
@@ -68,7 +89,7 @@ const data = {
           url: "/admin/movies",
         }
       ],
-    },
+    }, */
     // {
     //   title: "Documentation",
     //   url: "#",

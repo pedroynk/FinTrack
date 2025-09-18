@@ -48,7 +48,7 @@ export async function createTypeApi(newType: TypeCreateRequest): Promise<void> {
 
 export async function updateTypeApi(updateData: TypeUpdateRequest): Promise<void>{
   const { id, ...updateFields } = updateData;
-  
+
   const { error } = await supabase
     .from('type')
     .update(updateFields)

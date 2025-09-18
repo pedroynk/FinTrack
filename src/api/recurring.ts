@@ -82,7 +82,7 @@ export async function updateRecurringApi(id: string, data: RecurringCreateReques
     .from("recurring_transaction")
     .update(payload)
     .eq("id", id)
-    .select(); // opcional: para retornar a linha atualizada
+    .select();
 }
 
 
