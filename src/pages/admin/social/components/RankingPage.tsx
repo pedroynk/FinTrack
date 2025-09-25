@@ -69,7 +69,7 @@ function RankingRow({ user, position, onUserClick }: { user: User; position: num
 
         {/* Foto */}
         <div className="col-span-1">
-          <img src={user.avatar} alt={user.name} className="h-8 w-8 rounded-full object-cover" />
+          <img src={normalizeAvatarUrl(user.avatar)} alt={user.name} className="h-8 w-8 rounded-full object-cover" />
         </div>
 
         {/* Nome (ocupa mais espaço no mobile) */}
@@ -200,7 +200,7 @@ export default function RankingPage() {
           {selectedUser && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <img src={selectedUser.avatar} className="h-auto md:h-12 w-full md:w-12 rounded-full object-cover" />
+                <img src={normalizeAvatarUrl(selectedUser.avatar)} className="h-auto md:h-12 w-full md:w-12 rounded-full object-cover" />
                 <div>
                   <p className="font-semibold">{selectedUser.name}</p>
                   <p className="text-sm text-muted-foreground">{selectedUser.lastActivity}</p>
