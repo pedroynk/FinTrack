@@ -133,3 +133,14 @@
   }
   .safe-px { padding-inline: clamp(0.75rem, 2vw, 1rem); }
 }
+
+/* Barra de rolagem estável (sem "pulo" de layout) */
+html { scrollbar-gutter: stable both-edges; }
+/* Alternativa compatível: manter a barra sempre reservada */
+body { overflow-y: scroll; }
+
+/* Segurança extra contra scroll lateral */
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+
+/* Em layouts com flex, impedir que filhos forcem a largura */
+* { min-width: 0; }

@@ -277,7 +277,7 @@ export function InvestmentFormDialog() {
                                     initial_date: date ? date.toISOString() : new Date().toISOString(),
                                 })
                             }
-                        />
+        />
 
                         <Label>Data Final</Label>
                         <DatePicker
@@ -288,7 +288,7 @@ export function InvestmentFormDialog() {
                                     final_date: date ? date.toISOString() : new Date().toISOString(),
                                 })
                             }
-                        />
+          />
 
                         <Button onClick={handleCreateRentability}>Salvar</Button>
                     </div>

@@ -53,7 +53,7 @@ const data = {
         },
         {
           title: "Dimensões",
-          url: "/dimensions",
+          url: "/admin/finance/dimensions",
         }
       ],
     },
@@ -64,15 +64,7 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Despesa",
-          url: "/admin/social",
-        },
-        {
-          title: "Receita",
-          url: "/admin/social",
-        },
-        {
-          title: "Saldo",
+          title: "Gameficação",
           url: "/admin/social",
         }
       ],

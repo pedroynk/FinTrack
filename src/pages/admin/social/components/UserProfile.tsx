@@ -16,14 +16,14 @@ export const UserProfile = ({ user, onRemoveFromNetwork, onBlockUser }: UserProf
         <img
           src={user.avatar}
           alt={user.name}
-          className="w-full md:w-24 h-auto md:h-24 rounded-full object-cover border-4 border-border"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-border"
         />
         <div className="text-center">
           <h3 className="text-xl font-semibold text-foreground">{user.name}</h3>
           <p className="text-muted-foreground">{user.score.toLocaleString()} pontos</p>
         </div>
       </div>
-
+      {/* resto igual... */}
       <div className="space-y-4">
         <div>
           <h4 className="text-sm font-medium text-foreground mb-3">Medalhas</h4>
@@ -55,19 +55,11 @@ export const UserProfile = ({ user, onRemoveFromNetwork, onBlockUser }: UserProf
       </div>
 
       <div className="flex gap-2 pt-4">
-        <Button
-          variant="outline"
-          onClick={() => onRemoveFromNetwork(user.id)}
-          className="flex-1 gap-2"
-        >
+        <Button variant="outline" onClick={() => onRemoveFromNetwork(user.id)} className="flex-1 gap-2">
           <UserMinus className="h-4 w-4" />
           Remover da Rede
         </Button>
-        <Button
-          variant="destructive"
-          onClick={() => onBlockUser(user.id)}
-          className="flex-1 gap-2"
-        >
+        <Button variant="destructive" onClick={() => onBlockUser(user.id)} className="flex-1 gap-2">
           <Ban className="h-4 w-4" />
           Bloquear
         </Button>

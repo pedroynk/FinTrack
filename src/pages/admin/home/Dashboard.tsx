@@ -210,52 +210,56 @@ export default function Dashboard() {
       <div className="flex-col md:flex overflow-x-hidden">
         <div className="flex-1 space-y-4 p-8 pt-6">
 
-          {/* Filters */}
-          <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <div className="flex items-center space-x-2">
-              {/* Month Select (ShadCN UI) */}
-              <Select
-                onValueChange={(value) => setSelectedMonth(Number(value))}
-                defaultValue={String(selectedMonth)}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(12)].map((_, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {new Date(0, i).toLocaleString("default", {
-                        month: "long",
-                      })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+{/* Filters */}
+<div className="flex items-center justify-between gap-2 flex-nowrap">
+  {/* Título: ocupa o espaço restante, não quebra e reduz por largura */}
+  <h2 className="flex-1 min-w-0 truncate font-bold tracking-tight leading-tight text-[clamp(0.95rem,3.3vw,1.375rem)]">
+    Dashboard
+  </h2>
 
-              {/* Year Select */}
-              <Select
-                onValueChange={(value) => setSelectedYear(Number(value))}
-                defaultValue={String(selectedYear)}
-              >
-                <SelectTrigger className="w-full sm:w-[120px]">
-                  <SelectValue placeholder="Ano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(currentYear - 2021 + 1)].map((_, i) => {
-                    const year = 2021 + i; // Generates years from 2021 up to currentYear
-                    return (
-                      <SelectItem key={year} value={String(year)}>
-                        {year}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+  {/* Controles: sem quebra e compactos */}
+  <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+    {/* Month Select */}
+    <Select
+      onValueChange={(value) => setSelectedMonth(Number(value))}
+      defaultValue={String(selectedMonth)}
+    >
+      <SelectTrigger className="h-9 w-[118px] px-2 text-xs">
+        <SelectValue placeholder="Mês" />
+      </SelectTrigger>
+      <SelectContent>
+        {[...Array(12)].map((_, i) => (
+          <SelectItem key={i + 1} value={String(i + 1)}>
+            {new Date(0, i).toLocaleString("default", { month: "long" })}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
 
-              <Button>Download</Button>
-            </div>
-          </div>
+    {/* Year Select */}
+    <Select
+      onValueChange={(value) => setSelectedYear(Number(value))}
+      defaultValue={String(selectedYear)}
+    >
+      <SelectTrigger className="h-9 w-[84px] px-2 text-xs">
+        <SelectValue placeholder="Ano" />
+      </SelectTrigger>
+      <SelectContent>
+        {[...Array(currentYear - 2021 + 1)].map((_, i) => {
+          const year = 2021 + i;
+          return (
+            <SelectItem key={year} value={String(year)}>
+              {year}
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+
+    <Button className="h-9 px-2 text-xs">Download</Button>
+  </div>
+</div>
+
 
           {/* Dashboard */}
           <Tabs defaultValue="overview" className="space-y-4">
