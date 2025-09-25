@@ -133,13 +133,13 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
   }
 
   return (
-    <Card className="max-h-[800px]">
+    <Card className="max-h-auto md:h-[800px]">
       <CardHeader>
         <CardTitle>Gerenciamento de Tipos</CardTitle>
       </CardHeader>
       <CardContent>
         {/* New Type Form */}
-        <div className="flex flex-row flex-wrap items-center gap-4">
+        <div className="flex flex-col md:flex-row flex-wrap items-center gap-4">
           <Input
             value={newType.name || ""}
             onChange={(e) => setNewType({ ...newType, name: e.target.value })}
@@ -245,7 +245,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
 
         {/* Types Table */}
         <div className="mt-4">
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-auto md:h-[400px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>

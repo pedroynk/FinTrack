@@ -219,7 +219,7 @@ export default function Dashboard() {
                 onValueChange={(value) => setSelectedMonth(Number(value))}
                 defaultValue={String(selectedMonth)}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Mês" />
                 </SelectTrigger>
                 <SelectContent>
@@ -238,7 +238,7 @@ export default function Dashboard() {
                 onValueChange={(value) => setSelectedYear(Number(value))}
                 defaultValue={String(selectedYear)}
               >
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-full sm:w-[120px]">
                   <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent>

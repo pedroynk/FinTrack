@@ -119,3 +119,17 @@
 /* .cursor-click {
   animation: click 0.3s ease-in-out;
 } */
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  img, video, canvas, svg { max-width: 100%; height: auto; }
+}
+
+@layer utilities {
+  /* Responsive containers without changing existing markup */
+  .container {
+    width: min(100% - 2rem, 1200px);
+    margin-inline: auto;
+  }
+  .safe-px { padding-inline: clamp(0.75rem, 2vw, 1rem); }
+}

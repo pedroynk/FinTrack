@@ -29,7 +29,7 @@ export function InvestmentCharts({ pieChartData, incomeChartData, COLORS, barCha
                         <CardDescription>Rentabilidade de Investimentos</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={chartConfig} className="h-[410px] w-full">
+                        <ChartContainer config={chartConfig} className="h-auto md:h-[410px] w-full">
                             <BarChart
                                 accessibilityLayer
                                 data={barChartData}
@@ -93,7 +93,7 @@ export function InvestmentCharts({ pieChartData, incomeChartData, COLORS, barCha
                         <CardDescription>Rentabilidade Geral ao Longo dos Meses</CardDescription>
                     </CardHeader>
                     <CardContent className="pb-4">
-                        <ChartContainer config={chartConfig} className="h-[420px] w-full">
+                        <ChartContainer config={chartConfig} className="h-auto md:h-[420px] w-full">
                             <LineChart
                                 data={lineChartData}
                                 margin={{ top: 5, right: 10, left: 10, bottom: 0 }}

@@ -85,7 +85,7 @@ export function TransactionsTable({ transactions }: { transactions: Transaction[
   });
 
   return (
-    <div className="overflow-y-auto h-auto max-h-[400px]">
+    <div className="overflow-y-auto h-auto max-h-auto md:h-[400px]">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -113,7 +113,7 @@ export function TransactionsTable({ transactions }: { transactions: Transaction[
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+              <TableCell colSpan={columns.length} className="h-auto md:h-24 text-center">
                 Nenhuma transação encontrada.
               </TableCell>
             </TableRow>

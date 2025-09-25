@@ -58,7 +58,7 @@ export default function Movies() {
     <div className="p-6">
       {/* Search, Filter & Controls */}
       <div className="flex items-center justify-between mb-6">
-        <div className="relative w-96">
+        <div className="relative w-full md:w-96">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input
             type="search"

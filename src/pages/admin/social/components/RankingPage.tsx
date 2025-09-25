@@ -167,7 +167,7 @@ export default function RankingPage() {
           {/* Wrapper com overflow-x para telas muito estreitas */}
           <div className="overflow-x-auto">
             {/* Cabeçalho com grid responsivo */}
-            <div className="min-w-[640px] md:min-w-0 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-11 gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary text-secondary-foreground font-semibold text-xs sm:text-sm">
+            <div className="min-w-full sm:w-[640px] md:min-w-0 grid grid-cols-6 sm:grid-cols-8 md:grid-cols-11 gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary text-secondary-foreground font-semibold text-xs sm:text-sm">
               <div className="col-span-1">Pos</div>
               <div className="col-span-1">Foto</div>
               <div className="col-span-3 sm:col-span-3 md:col-span-4">Nome</div>
@@ -200,13 +200,13 @@ export default function RankingPage() {
           {selectedUser && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <img src={selectedUser.avatar} className="h-12 w-12 rounded-full object-cover" />
+                <img src={selectedUser.avatar} className="h-auto md:h-12 w-full md:w-12 rounded-full object-cover" />
                 <div>
                   <p className="font-semibold">{selectedUser.name}</p>
                   <p className="text-sm text-muted-foreground">{selectedUser.lastActivity}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
                 <div className="rounded-md border p-2">
                   <div className="text-xs text-muted-foreground">Ouro</div>
                   <div className="font-semibold tabular-nums">{selectedUser.medals.gold}</div>

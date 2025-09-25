@@ -147,7 +147,7 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
             </Button>
 
             {searchResults.length > 0 && (
-              <div className="max-h-[300px] overflow-y-auto space-y-2">
+              <div className="max-h-auto md:h-[300px] overflow-y-auto space-y-2">
                 {searchResults.map((movie) => (
                   <div
                     key={movie.imdb_id}
@@ -157,7 +157,7 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
                     <img 
                       src={movie.poster || "/placeholder.svg"} 
                       alt={movie.title} 
-                      className="w-10 h-15 object-cover"
+                      className="w-full md:w-10 h-auto md:h-15 object-cover"
                     />
                     <div>
                       <p className="font-medium">{movie.title} ({movie.year})</p>
@@ -174,7 +174,7 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
               <img 
                 src={selectedMovie?.poster || "/placeholder.svg"} 
                 alt={selectedMovie?.title} 
-                className="w-20 h-30 object-cover"
+                className="w-full md:w-20 h-auto md:h-30 object-cover"
               />
               <div>
                 <h3 className="font-medium text-lg">{selectedMovie?.title} ({selectedMovie?.year})</h3>

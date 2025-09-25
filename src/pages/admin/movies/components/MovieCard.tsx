@@ -78,7 +78,7 @@ export function MovieCard({ movie, onClick, onDelete }: MovieCardProps) {
       <img
         src={movie.poster || "/placeholder.svg"}
         alt={movie.title}
-        className="w-full h-48 object-cover rounded-lg"
+        className="w-full h-auto md:h-48 object-cover rounded-lg"
       />
       <div className="mt-2">
         <h3 className="font-medium">{movie.title}</h3>

@@ -16,7 +16,7 @@ export const UserProfile = ({ user, onRemoveFromNetwork, onBlockUser }: UserProf
         <img
           src={user.avatar}
           alt={user.name}
-          className="w-24 h-24 rounded-full object-cover border-4 border-border"
+          className="w-full md:w-24 h-auto md:h-24 rounded-full object-cover border-4 border-border"
         />
         <div className="text-center">
           <h3 className="text-xl font-semibold text-foreground">{user.name}</h3>
@@ -27,7 +27,7 @@ export const UserProfile = ({ user, onRemoveFromNetwork, onBlockUser }: UserProf
       <div className="space-y-4">
         <div>
           <h4 className="text-sm font-medium text-foreground mb-3">Medalhas</h4>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="flex flex-col items-center p-3 bg-secondary rounded-lg">
               <Medal className="h-6 w-6 text-gold mb-1" />
               <span className="text-lg font-bold text-gold">{user.medals.gold}</span>
