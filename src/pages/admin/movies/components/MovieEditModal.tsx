@@ -76,7 +76,7 @@ export function MovieEditModal({ movie, open, onOpenChange, onMovieUpdated }: Mo
           <img 
             src={movie.poster || "/placeholder.svg"} 
             alt={movie.title} 
-            className="w-20 h-30 object-cover"
+            className="w-full md:w-20 h-auto md:h-30 object-cover"
           />
           <div>
             <h3 className="font-medium text-lg">{movie.title} ({movie.year})</h3>

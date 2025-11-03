@@ -65,7 +65,7 @@ export function LoginForm({
                   Ou continue com
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path

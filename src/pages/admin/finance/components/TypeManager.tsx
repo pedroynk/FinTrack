@@ -37,39 +37,17 @@ import {
 import { Type, Nature, TypeCreateRequest, TypeUpdateRequest } from "@/types/finance";
 
 const ICON_OPTIONS = [
-  "wrench",
-  "utensils",
-  "activity",
-  "briefcase",
-  "dollar-sign",
-  "credit-card",
-  "shopping-bag",
-  "shopping-cart",
-  "heart",
-  "coffee",
-  "home",
-  "car",
-  "book",
-  "plane",
-  "gift",
-  "music",
-  "film",
-  "calendar",
-  "clock",
-  "globe",
-  "map-pin",
-  "umbrella",
-  "truck",
-  "bell",
-  "bar-chart-2",
-  "award",
-  "ticket",
-  "tv", 
-  "cpu",
-  "dribbble"
+  "wrench","utensils","activity","briefcase","dollar-sign","credit-card",
+  "shopping-bag","shopping-cart","heart","coffee","home","car","book","plane",
+  "gift","music","film","calendar","clock","globe","map-pin","umbrella","truck",
+  "bell","bar-chart-2","award","ticket","tv","cpu","dribbble"
 ];
 
-function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], types: Type[], refetchTypes: () => void }) {
+function TypeManager({
+  natures,
+  types,
+  refetchTypes,
+}: { natures: Nature[]; types: Type[]; refetchTypes: () => void }) {
   const [newType, setNewType] = useState<TypeCreateRequest>({
     name: "",
     hex_color: null,
@@ -79,9 +57,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
   const [showNewColorPicker, setShowNewColorPicker] = useState(false);
 
   const [showEditColorPicker, setShowEditColorPicker] = useState(false);
-  const [editingType, setEditingType] = useState<TypeUpdateRequest | null>(
-    null
-  );
+  const [editingType, setEditingType] = useState<TypeUpdateRequest | null>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [forDeletionType, setForDeletionType] = useState<number | null>(null);
@@ -94,7 +70,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
   async function confirmDelete() {
     if (forDeletionType) {
       await deleteTypeApi(forDeletionType);
-      refetchTypes()
+      refetchTypes();
       setConfirmOpen(false);
       setForDeletionType(null);
     }
@@ -102,7 +78,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
 
   async function handleCreate() {
     await createTypeApi(newType);
-    refetchTypes()
+    refetchTypes();
     setNewType({ name: "", hex_color: null, lucide_icon: null, nature_id: 0 });
     setShowNewColorPicker(false);
   }
@@ -110,7 +86,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
   async function handleUpdate() {
     if (editingType && editingType.id != null) {
       await updateTypeApi(editingType);
-      refetchTypes()
+      refetchTypes();
       setEditingType(null);
       setShowEditColorPicker(false);
     }
@@ -133,59 +109,67 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
   }
 
   return (
-    <Card className="max-h-[800px]">
+    <Card className="max-h-auto md:h-[800px]">
       <CardHeader>
         <CardTitle>Gerenciamento de Tipos</CardTitle>
       </CardHeader>
+
       <CardContent>
         {/* New Type Form */}
-        <div className="flex flex-row flex-wrap items-center gap-4">
+        <div className="flex flex-col md:flex-row flex-wrap items-center gap-4">
           <Input
             value={newType.name || ""}
             onChange={(e) => setNewType({ ...newType, name: e.target.value })}
             placeholder="Tipo"
-            className="w-[60%]"
+            className="w-full md:w-[60%]"
           />
+
+          {/* Botão de cor com texto REALMENTE centralizado */}
           <Button
+            type="button"
             onClick={() => setShowNewColorPicker(!showNewColorPicker)}
-            className="flex items-center "
+            className="
+              relative justify-center
+              w-full md:w-auto
+              h-9 md:h-10
+              px-8 md:px-10
+              text-[clamp(0.75rem,2.6vw,0.875rem)]
+              leading-none
+            "
           >
-            <div
-              style={{
-                backgroundColor: newType.hex_color || "transparent",
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                border: "1px solid #ccc",
-              }}
+            {/* swatch não desloca o centro do texto */}
+            <span
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full ring-1 ring-black/20"
+              style={{ backgroundColor: newType.hex_color ?? "#f59e0b" }}
+              aria-hidden
             />
             <span>{newType.hex_color ? "Alterar Cor" : "Escolher Cor"}</span>
           </Button>
+
           {showNewColorPicker && (
-            <div className="mt-2 max-w-xs">
+            <div className="mt-2 max-w-xs w-full sm:w-auto">
               <HexColorPicker
                 color={newType.hex_color || "#000000"}
-                onChange={(color) =>
-                  setNewType({ ...newType, hex_color: color })
-                }
+                onChange={(color) => setNewType({ ...newType, hex_color: color })}
               />
               <Input
                 value={newType.hex_color || "#000000"}
                 onChange={(e) =>
-                  // Cast the value as HexColor; you may also add runtime validation here.
                   setNewType({ ...newType, hex_color: e.target.value })
                 }
                 placeholder="Type hex code"
+                className="mt-2"
               />
             </div>
           )}
+
           <Select
             value={String(newType.nature_id) || "Selecione"}
             onValueChange={(value) =>
               setNewType({ ...newType, nature_id: parseInt(value) })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full md:w-auto">
               {newType.nature_id
                 ? natures.find((n) => n.id == newType.nature_id)?.name
                 : "Natureza"}
@@ -198,13 +182,14 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
               ))}
             </SelectContent>
           </Select>
+
           <Select
             value={newType.lucide_icon || ""}
             onValueChange={(value) =>
               setNewType({ ...newType, lucide_icon: value || null })
             }
           >
-            <SelectTrigger className="flex items-center">
+            <SelectTrigger className="w-full md:w-auto flex items-center">
               {newType.lucide_icon ? (
                 <>
                   <DynamicIcon
@@ -225,11 +210,7 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
               {ICON_OPTIONS.map((icon) => (
                 <SelectItem key={icon} value={icon || "null"}>
                   <div className="flex items-center">
-                    <DynamicIcon
-                      name={icon as IconName}
-                      size={16}
-                      className="mr-2"
-                    />
+                    <DynamicIcon name={icon as IconName} size={16} className="mr-2" />
                     <span>{icon}</span>
                   </div>
                 </SelectItem>
@@ -237,15 +218,20 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
             </SelectContent>
           </Select>
 
-          <Button onClick={handleCreate}>Criar Tipo</Button>
+          <Button
+            onClick={handleCreate}
+            className="w-full md:w-auto h-9 md:h-10 px-3 md:px-4 text-[clamp(0.75rem,2.6vw,0.875rem)] leading-none"
+          >
+            Criar Tipo
+          </Button>
         </div>
 
         {/* Divider between form and table */}
         <div className="mt-8 border-t border-gray-200 pt-4"></div>
 
         {/* Types Table */}
-        <div className="mt-4">
-          <div className="max-h-[400px] overflow-y-auto">
+        <div className="mt-4 w-full overflow-x-auto">
+          <div className="max-h-auto md:h-[400px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -261,24 +247,23 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                   <TableRow key={type.id}>
                     <TableCell>
                       {editingType && editingType.id === type.id ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <div
                             style={{
-                              backgroundColor:
-                                editingType.hex_color || "transparent",
+                              backgroundColor: editingType.hex_color || "transparent",
                               width: "20px",
                               height: "20px",
                               borderRadius: "50%",
                               border: "1px solid #ccc",
                             }}
                           />
+                          {/* Botão de alterar cor (compacto) */}
                           <Button
-                            onClick={() =>
-                              setShowEditColorPicker(!showEditColorPicker)
-                            }
+                            onClick={() => setShowEditColorPicker(!showEditColorPicker)}
                             variant="ghost"
+                            className="h-8 px-2 text-xs"
                           >
-                            {editingType.hex_color ? "Change" : "Pick"} Color
+                            {editingType.hex_color ? "Alterar Cor" : "Escolher Cor"}
                           </Button>
                         </div>
                       ) : (
@@ -290,47 +275,38 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                             borderRadius: "50%",
                             border: "1px solid #ccc",
                           }}
-                        ></div>
+                        />
                       )}
-                      {editingType &&
-                        editingType.id === type.id &&
-                        showEditColorPicker && (
-                          <div className="mt-2 max-w-xs">
-                            <HexColorPicker
-                              color={editingType.hex_color || "#000000"}
-                              onChange={(color) =>
-                                setEditingType({
-                                  ...editingType,
-                                  hex_color: color,
-                                })
-                              }
-                            />{" "}
-                            <Input
-                              value={editingType.hex_color || "#000000"}
-                              onChange={(e) =>
-                                // Cast the value as HexColor; you may also add runtime validation here.
-                                setEditingType({
-                                  ...editingType,
-                                  hex_color: e.target.value,
-                                })
-                              }
-                              placeholder="Type hex code"
-                            />
-                          </div>
-                        )}
+
+                      {editingType && editingType.id === type.id && showEditColorPicker && (
+                        <div className="mt-2 max-w-xs">
+                          <HexColorPicker
+                            color={editingType.hex_color || "#000000"}
+                            onChange={(color) =>
+                              setEditingType({ ...editingType, hex_color: color })
+                            }
+                          />
+                          <Input
+                            value={editingType.hex_color || "#000000"}
+                            onChange={(e) =>
+                              setEditingType({ ...editingType, hex_color: e.target.value })
+                            }
+                            placeholder="Type hex code"
+                            className="mt-2"
+                          />
+                        </div>
+                      )}
                     </TableCell>
+
                     <TableCell>
                       {editingType && editingType.id === type.id ? (
                         <Select
                           value={editingType.lucide_icon || ""}
                           onValueChange={(value) =>
-                            setEditingType({
-                              ...editingType,
-                              lucide_icon: value || null,
-                            })
+                            setEditingType({ ...editingType, lucide_icon: value || null })
                           }
                         >
-                          <SelectTrigger className="flex items-center">
+                          <SelectTrigger className="flex items-center w-full md:w-auto">
                             {editingType.lucide_icon ? (
                               <>
                                 <DynamicIcon
@@ -361,16 +337,15 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                         <span>None</span>
                       )}
                     </TableCell>
+
                     <TableCell>
                       {editingType && editingType.id === type.id ? (
                         <Input
                           value={editingType.name || ""}
                           onChange={(e) =>
-                            setEditingType({
-                              ...editingType,
-                              name: e.target.value,
-                            })
+                            setEditingType({ ...editingType, name: e.target.value })
                           }
+                          className="w-full"
                         />
                       ) : (
                         type.name
@@ -382,25 +357,17 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                         <Select
                           value={String(editingType.nature_id) || ""}
                           onValueChange={(value) =>
-                            setEditingType({
-                              ...editingType,
-                              nature_id: parseInt(value),
-                            })
+                            setEditingType({ ...editingType, nature_id: parseInt(value) })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full md:w-auto">
                             {editingType.nature_id
-                              ? natures.find(
-                                (n) => n.id == editingType.nature_id
-                              )?.name
+                              ? natures.find((n) => n.id == editingType.nature_id)?.name
                               : "Select Nature"}
                           </SelectTrigger>
                           <SelectContent>
                             {natures.map((nature) => (
-                              <SelectItem
-                                key={nature.id}
-                                value={String(nature.id)}
-                              >
+                              <SelectItem key={nature.id} value={String(nature.id)}>
                                 {nature.name}
                               </SelectItem>
                             ))}
@@ -411,19 +378,20 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                         natures.find((n) => n.id === type.nature?.id)?.name
                       )}
                     </TableCell>
-                    <TableCell className="flex space-x-2">
+
+                    <TableCell className="flex gap-1">
                       {editingType && editingType.id === type.id ? (
                         <>
                           <Button
                             onClick={handleUpdate}
-                            className="p-2 text-green-500"
+                            className="p-2 text-green-500 h-8 text-xs"
                             variant="ghost"
                           >
                             Save
                           </Button>
                           <Button
                             onClick={cancelEditing}
-                            className="p-2 text-gray-500"
+                            className="p-2 text-gray-500 h-8 text-xs"
                             variant="ghost"
                           >
                             Cancel
@@ -433,20 +401,16 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                         <>
                           <Button
                             variant="ghost"
-                            className="p-2 text-blue-500"
+                            className="p-2 text-blue-500 h-8"
                             onClick={() => startEditing(type)}
                           >
                             <Pen size={16} />
                           </Button>
-                          <AlertDialog
-                            open={confirmOpen}
-                            onOpenChange={setConfirmOpen}
-                          >
+
+                          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Tem certeza?
-                                </AlertDialogTitle>
+                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Esta ação não pode ser desfeita.
                                 </AlertDialogDescription>
@@ -459,11 +423,12 @@ function TypeManager({ natures, types, refetchTypes }: { natures: Nature[], type
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="ghost"
-                                className="p-2 text-red-500"
+                                className="p-2 text-red-500 h-8"
                                 onClick={() => handleDelete(type.id)}
                               >
                                 <Trash size={16} />

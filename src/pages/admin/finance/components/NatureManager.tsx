@@ -28,7 +28,7 @@
 //           <Button onClick={handleCreate}>Create</Button>
 //         </div>
 //         <Table className="mt-4 overflow-auto">
-//         <div className="max-h-64 overflow-y-auto">         
+//         <div className="max-h-auto md:h-64 overflow-y-auto">         
 //           <TableHeader>
 //             <TableRow>
 //               <TableCell>Name</TableCell>

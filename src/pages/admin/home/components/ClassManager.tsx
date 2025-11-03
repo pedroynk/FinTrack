@@ -66,12 +66,12 @@ function ClassManager({ types }: { types: Type[] }) {
   }
 
   return (
-    <Card className="max-h-[800px]">
+    <Card className="max-h-auto md:h-[800px]">
       <CardHeader>
         <CardTitle>Gerenciamento de Classes</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-row flex-wrap items-center gap-4">
+        <div className="flex flex-col md:flex-row flex-wrap items-center gap-4">
           <Input
             value={newClass.name}
             onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
@@ -98,7 +98,7 @@ function ClassManager({ types }: { types: Type[] }) {
 
         <div className="mt-8 border-t border-gray-200 pt-4"></div>
 
-        <div className="mt-4 max-h-[460px] overflow-y-auto">
+        <div className="mt-4 max-h-auto md:h-[460px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>

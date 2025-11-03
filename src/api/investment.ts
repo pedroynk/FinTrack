@@ -93,6 +93,7 @@ export async function fetchInvestmentSummary() {
         return acc;
     }, {} as Record<number, number>);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const groupedInvestments = movements.reduce<Record<string, any>>((acc, item) => {
         const investmentData = investmentTypeMap[item.type_id] || { name_id: 0, description: "Sem descrição" };
         const nameData = investmentNameMap[investmentData.name_id] || { name: "Desconhecido", income_id: 0 };
@@ -445,6 +446,7 @@ export async function createInvestmentType(newType: InvestmentType) {
 /**
  *  Criar Rentabilidade do Investimento
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createRentability(newRentability: any) {
     let initialValue = parseFloat(newRentability.initial_value);
     let finalValue = parseFloat(newRentability.final_value);
@@ -466,6 +468,7 @@ export async function createRentability(newRentability: any) {
         return { success: false };
     }
 
+    // eslint-disable-next-line prefer-const
     let adjustedInitialValue = initialValue + contributionValue - withdrawalValue;
 
     const rentability = ((finalValue - adjustedInitialValue) / adjustedInitialValue) * 100;
@@ -565,6 +568,7 @@ export async function fetchRentabilityOverTime() {
         // Número total de dias no período
         const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+        // eslint-disable-next-line prefer-const
         let current = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1);
 
         while (current <= endDate) {
