@@ -1,11 +1,11 @@
 import * as React from "react"
 import {
+  Clapperboard,
   PiggyBank,
   Trophy
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-// import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -20,8 +20,7 @@ import { useAuth } from "@/hooks/useAuth"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  
-  // This is sample data.
+
 const data = {
   user: {
     name: user?.user_metadata?.full_name || "Usuário Anônimo",
@@ -31,6 +30,7 @@ const data = {
   navMain: [
     {
       title: "Finanças",
+      color:"#FACC15",
       url: "#",
       icon: PiggyBank,
       isActive: true,
@@ -38,6 +38,10 @@ const data = {
         {
           title: "Dashboard",
           url: "/admin",
+        },
+        {
+          title: "Dimensões",
+          url: "/admin/finance/dimensions",
         },
         {
           title: "Investimentos",
@@ -51,14 +55,12 @@ const data = {
           title: "Transações",
           url: "/admin/finance/transactions",
         },
-        {
-          title: "Dimensões",
-          url: "/admin/finance/dimensions",
-        }
+
       ],
     },
     {
       title: "Social",
+      color:"#FACC15",
       icon: Trophy,
       url: "#",
       isActive: true,
@@ -69,8 +71,9 @@ const data = {
         }
       ],
     },
-   /*  {
+    {
       title: "Cinema",
+      color:"#FACC15",
       icon: Clapperboard,
       url: "#",
       isActive: true,
@@ -80,71 +83,8 @@ const data = {
           url: "/admin/movies",
         }
       ],
-    }, */
-    // {
-    //   title: "Documentation",
-    //   url: "#",
-    //   icon: BookOpen,
-    //   items: [
-    //     {
-    //       title: "Introduction",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Get Started",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Tutorials",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Changelog",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
-    // {
-    //   title: "Settings",
-    //   url: "#",
-    //   icon: Settings2,
-    //   items: [
-    //     {
-    //       title: "General",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Team",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Billing",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Limits",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
+    },
   ],
-  // projects: [
-  //   {
-  //     name: "Design Engineering",
-  //     url: "#",
-  //     icon: Frame,
-  //   },
-  //   {
-  //     name: "Sales & Marketing",
-  //     url: "#",
-  //     icon: PieChart,
-  //   },
-  //   {
-  //     name: "Travel",
-  //     url: "#",
-  //     icon: Map,
-  //   },
-  // ],
 }
 
 

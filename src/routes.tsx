@@ -14,6 +14,11 @@ const Investments = lazy(() => import("./pages/admin/finance/Investments"));
 const Recurring = lazy(() => import("./pages/admin/finance/Recurring"));
 const Rede = lazy(() => import("./pages/admin/social/Social"));
 const Dimensions = lazy(() => import("./pages/admin/finance/Dimensions"));
+//const StudyDimensions = lazy(() => import("./pages/admin/study/Dimensions"));
+//const StudyQuestion = lazy(() => import("./pages/admin/study/Questions"));
+//const StudyTimer = lazy(() => import("./pages/admin/study/Timer"));
+
+
 
 const router = createBrowserRouter([
 
