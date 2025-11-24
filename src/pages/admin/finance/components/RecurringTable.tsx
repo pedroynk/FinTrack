@@ -58,6 +58,34 @@ export function RecurringTable({
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [paymentAction, setPaymentAction] = useState<"mark" | "unmark" | null>(null);
 
+  function getRemainingInfo(recurring: any) {
+    const paidParcels: number[] = recurring.paid_parcels || [];
+
+    if (!Array.isArray(recurring.installments) || !recurring.value) {
+      return null;
+    }
+
+    const totalInstallments = recurring.installments.length;
+    const paidCount = paidParcels.length;
+    const remainingInstallments = Math.max(totalInstallments - paidCount, 0);
+
+    const remainingAmount = remainingInstallments * recurring.value;
+
+    return {
+      totalInstallments,
+      paidCount,
+      remainingInstallments,
+      remainingAmount,
+    };
+  }
+
+  function formatBRL(value: number) {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
   return (
     <div className="w-full overflow-x-auto max-w-full">
       <Table>
@@ -70,12 +98,15 @@ export function RecurringTable({
             <TableHead>Descrição</TableHead>
             <TableHead>Frequência</TableHead>
             <TableHead>Validade</TableHead>
+            <TableHead>Saldo</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="text-sm">
           {recurring.map((recurring) => {
             const paidParcels = recurring.paid_parcels || [];
+            const remainingInfo = getRemainingInfo(recurring);
+
 
             return (
               <>
@@ -90,6 +121,20 @@ export function RecurringTable({
                     {typeof recurring.validity === "string" && recurring.validity !== "Invalid Date"
                       ? recurring.validity.split('-').reverse().join('/')
                       : "Sem Validade"}
+                  </TableCell>
+                  <TableCell>
+                    {remainingInfo ? (
+                      <div className="flex flex-col">
+                        <span>
+                          {remainingInfo.remainingInstallments}x de {formatBRL(recurring.value)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Total: {formatBRL(remainingInfo.remainingAmount)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span>-</span>
+                    )}
                   </TableCell>
 
                   <TableCell className="flex gap-2">

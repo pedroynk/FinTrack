@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -220,21 +219,31 @@ export default function Dashboard() {
   {/* Controles: sem quebra e compactos */}
   <div className="flex items-center gap-2 shrink-0 flex-nowrap">
     {/* Month Select */}
-    <Select
-      onValueChange={(value) => setSelectedMonth(Number(value))}
-      defaultValue={String(selectedMonth)}
-    >
-      <SelectTrigger className="h-9 w-[118px] px-2 text-xs">
-        <SelectValue placeholder="Mês" />
-      </SelectTrigger>
-      <SelectContent>
-        {[...Array(12)].map((_, i) => (
-          <SelectItem key={i + 1} value={String(i + 1)}>
-            {new Date(0, i).toLocaleString("default", { month: "long" })}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+<Select
+  onValueChange={(value) => setSelectedMonth(Number(value))}
+  defaultValue={String(selectedMonth)}
+>
+  <SelectTrigger className="h-9 w-[118px] px-2 text-xs">
+    <SelectValue placeholder="Mês" />
+  </SelectTrigger>
+  <SelectContent>
+    {[...Array(12)].map((_, i) => {
+      const monthName = new Date(0, i).toLocaleString("default", {
+        month: "long",
+      });
+
+      const monthLabel =
+        monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+      return (
+        <SelectItem key={i + 1} value={String(i + 1)}>
+          {monthLabel}
+        </SelectItem>
+      );
+    })}
+  </SelectContent>
+</Select>
+
 
     {/* Year Select */}
     <Select
@@ -245,8 +254,8 @@ export default function Dashboard() {
         <SelectValue placeholder="Ano" />
       </SelectTrigger>
       <SelectContent>
-        {[...Array(currentYear - 2021 + 1)].map((_, i) => {
-          const year = 2021 + i;
+        {[...Array(currentYear - 2025 + 1)].map((_, i) => {
+          const year = 2025 + i;
           return (
             <SelectItem key={year} value={String(year)}>
               {year}
@@ -256,17 +265,12 @@ export default function Dashboard() {
       </SelectContent>
     </Select>
 
-    <Button className="h-9 px-2 text-xs">Download</Button>
   </div>
 </div>
 
 
           {/* Dashboard */}
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="overview">Mensal</TabsTrigger>
-              <TabsTrigger value="analytics">Anual</TabsTrigger>
-            </TabsList>
             <TabsContent value="overview" className="space-y-4">
               {/* Cards Grid */}
               <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">

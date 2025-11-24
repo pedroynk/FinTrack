@@ -209,7 +209,6 @@ export function RecurringFormDialog({
               <SelectContent>
                 <SelectItem value="Anual">Anual</SelectItem>
                 <SelectItem value="Mensal">Mensal</SelectItem>
-                <SelectItem value="Semanal">Semanal</SelectItem>
               </SelectContent>
             </Select>
             <Label>Vencimento</Label>
