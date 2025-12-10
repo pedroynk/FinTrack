@@ -44,10 +44,6 @@ const data = {
           url: "/admin/finance/dimensions",
         },
         {
-          title: "Investimentos",
-          url: "/admin/finance/investments",
-        },
-        {
           title: "Parcelas",
           url: "/admin/finance/recurring",
         },
@@ -56,19 +52,6 @@ const data = {
           url: "/admin/finance/transactions",
         },
 
-      ],
-    },
-    {
-      title: "Social",
-      color:"#FACC15",
-      icon: Trophy,
-      url: "#",
-      isActive: true,
-      items: [
-        {
-          title: "Gameficação",
-          url: "/admin/social",
-        }
       ],
     },
     {

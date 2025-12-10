@@ -10,9 +10,7 @@ const Movies = lazy(() => import("./pages/admin/movies/Movies"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Dashboard = lazy(() => import("./pages/admin/home/Dashboard"));
 const Transactions = lazy(() => import("./pages/admin/finance/Transactions"));
-const Investments = lazy(() => import("./pages/admin/finance/Investments"));
 const Recurring = lazy(() => import("./pages/admin/finance/Recurring"));
-const Rede = lazy(() => import("./pages/admin/social/Social"));
 const Dimensions = lazy(() => import("./pages/admin/finance/Dimensions"));
 //const StudyDimensions = lazy(() => import("./pages/admin/study/Dimensions"));
 //const StudyQuestion = lazy(() => import("./pages/admin/study/Questions"));
@@ -50,14 +48,6 @@ const router = createBrowserRouter([
                 ),
               },
               {
-                path: "investments",
-                element: (
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Investments />
-                  </Suspense>
-                ),
-              },
-              {
                 path: "recurring",
                 element: (
                   <Suspense fallback={<LoadingFallback />}>
@@ -82,14 +72,6 @@ const router = createBrowserRouter([
                 ),
               },
             ],
-          },
-          {
-            path: "social",
-            element: (
-              <Suspense fallback={<LoadingFallback />}>
-                <Rede />
-              </Suspense>
-            ),
           },
           {
             path: "movies",
