@@ -1,8 +1,7 @@
 import * as React from "react"
 import {
   Clapperboard,
-  PiggyBank,
-  Trophy
+  PiggyBank
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
