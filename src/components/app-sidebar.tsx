@@ -36,19 +36,19 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "/admin",
+          url: "",
         },
         {
           title: "Dimensões",
-          url: "/admin/finance/dimensions",
+          url: "/finance/dimensions",
         },
         {
           title: "Parcelas",
-          url: "/admin/finance/recurring",
+          url: "/finance/recurring",
         },
         {
           title: "Transações",
-          url: "/admin/finance/transactions",
+          url: "/finance/transactions",
         },
 
       ],
@@ -62,7 +62,7 @@ const data = {
       items: [
         {
           title: "Filmes",
-          url: "/admin/movies",
+          url: "/movies",
         }
       ],
     },
