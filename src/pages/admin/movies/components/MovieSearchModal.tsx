@@ -45,7 +45,7 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
   async function handleSelectMovie(movie: Movie) {
     setLoading(true);
     const fullMovie = await fetchMovieByImdbId(movie.imdb_id);
-    
+
 
     if (!fullMovie) {
       setLoading(false);
@@ -85,11 +85,10 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
 
     try {
       await createMovie(newMovie);
-      toast({
-        title: "Sucesso",
-        description: "Filme adicionado com sucesso!",
-        duration: 2000,
-      });
+
+      toast({ title: "Sucesso", description: "Filme adicionado com sucesso!", duration: 2000 });
+
+      resetState();
       setIsOpen(false);
       onMovieAdded();
     } catch (error) {
@@ -108,9 +107,10 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
     setSearchResults([]);
     setSelectedMovie(null);
     setRating("");
-    setWatchedDate(new Date());
+    setWatchedDate(undefined);
     setStatus("to_watch");
   }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -118,13 +118,14 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
       if (!open) resetState();
     }}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           Adicionar
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg">
+
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg">
         <DialogTitle>
           {step === "search" ? "Buscar Filme" : "Adicionar Detalhes"}
         </DialogTitle>
@@ -138,8 +139,8 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button 
-              onClick={handleSearch} 
+            <Button
+              onClick={handleSearch}
               disabled={loading}
               className="w-full"
             >
@@ -147,52 +148,61 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
             </Button>
 
             {searchResults.length > 0 && (
-              <div className="max-h-auto md:h-[300px] overflow-y-auto space-y-2">
+              <div className="max-h-[55vh] overflow-y-auto space-y-2 sm:max-h-[300px]">
                 {searchResults.map((movie) => (
                   <div
                     key={movie.imdb_id}
-                    className="flex items-center gap-4 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                    className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleSelectMovie(movie)}
                   >
-                    <img 
-                      src={movie.poster || "/placeholder.svg"} 
-                      alt={movie.title} 
-                      className="w-full md:w-10 h-auto md:h-15 object-cover"
+                    <img
+                      src={movie.poster || "/placeholder.svg"}
+                      alt={movie.title}
+                      className="h-16 w-12 flex-none rounded object-cover sm:h-14 sm:w-10"
                     />
-                    <div>
-                      <p className="font-medium">{movie.title} ({movie.year})</p>
-                      <p className="text-sm text-gray-500">IMDB ID: {movie.imdb_id}</p>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {movie.title} ({movie.year})
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        IMDB ID: {movie.imdb_id}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+
           </>
         ) : (
           <>
-            <div className="flex items-center gap-4">
-              <img 
-                src={selectedMovie?.poster || "/placeholder.svg"} 
-                alt={selectedMovie?.title} 
-                className="w-full md:w-20 h-auto md:h-30 object-cover"
+            <div className="flex items-start gap-3 sm:gap-4">
+              <img
+                src={selectedMovie?.poster || "/placeholder.svg"}
+                alt={selectedMovie?.title}
+                className="h-20 w-14 flex-none rounded object-cover sm:h-24 sm:w-16"
               />
-              <div>
-                <h3 className="font-medium text-lg">{selectedMovie?.title} ({selectedMovie?.year})</h3>
-                <p className="text-sm text-gray-500">{selectedMovie?.imdb_id}</p>
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-medium sm:text-lg">
+                  {selectedMovie?.title} ({selectedMovie?.year})
+                </h3>
+                <p className="truncate text-sm text-muted-foreground">{selectedMovie?.imdb_id}</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   variant={status === "to_watch" ? "default" : "outline"}
                   onClick={() => setStatus("to_watch")}
+                  className="w-full sm:w-auto"
                 >
                   Para Assistir
                 </Button>
                 <Button
                   variant={status === "watched" ? "default" : "outline"}
                   onClick={() => setStatus("watched")}
+                  className="w-full sm:w-auto"
                 >
                   Assistido
                 </Button>
@@ -218,19 +228,11 @@ export function MovieSearchModal({ onMovieAdded }: MovieSearchModalProps) {
                 </>
               )}
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setStep("search")}
-                >
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <Button variant="outline" className="w-full sm:flex-1" onClick={() => setStep("search")}>
                   Voltar
                 </Button>
-                <Button
-                  onClick={handleSaveMovie}
-                  disabled={loading}
-                  className="flex-1"
-                >
+                <Button onClick={handleSaveMovie} disabled={loading} className="w-full sm:flex-1">
                   {loading ? "Salvando..." : "Salvar Filme"}
                 </Button>
               </div>

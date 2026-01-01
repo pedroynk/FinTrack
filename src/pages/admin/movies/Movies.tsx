@@ -56,39 +56,46 @@ export default function Movies() {
     
   return (
     <div className="p-6">
-      {/* Search, Filter & Controls */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Buscar filmes..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  {/* Search */}
+  <div className="relative w-full sm:max-w-md">
+    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+    <Input
+      type="search"
+      placeholder="Buscar filmes..."
+      className="pl-9"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+  </div>
 
-        <Tabs value={filter} onValueChange={(val) => setFilter(val as "to_watch" | "watched")}>
-          <TabsList>
-            <TabsTrigger value="to_watch">Para Assistir</TabsTrigger>
-            <TabsTrigger value="watched">Assistido</TabsTrigger>
-          </TabsList>
-        </Tabs>
+  {/* Tabs */}
+  <Tabs
+    value={filter}
+    onValueChange={(val) => setFilter(val as "to_watch" | "watched")}
+    className="w-full sm:w-auto"
+  >
+    <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+      <TabsTrigger value="to_watch">Para Assistir</TabsTrigger>
+      <TabsTrigger value="watched">Assistido</TabsTrigger>
+    </TabsList>
+  </Tabs>
 
-        <div className="flex gap-2">
-          <MovieSearchModal onMovieAdded={loadMovies} />
-        </div>
-      </div>
+  {/* Add */}
+  <div className="w-full sm:w-auto">
+    <MovieSearchModal onMovieAdded={loadMovies} />
+  </div>
+</div>
+
 
       {/* Movie Grid */}
-      <div className="grid grid-cols-1 gap-6 grid-cols-3 lg:grid-cols-6">
+<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 lg:grid-cols-6">
   {movies
     .filter((movie) => movie.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .map((movie) => (
-      <MovieCard 
-        key={movie.imdb_id} 
-        movie={movie} 
+      <MovieCard
+        key={movie.imdb_id}
+        movie={movie}
         onClick={() => {
           setSelectedMovie(movie);
           setIsEditModalOpen(true);
@@ -97,6 +104,7 @@ export default function Movies() {
       />
     ))}
 </div>
+
 
     {selectedMovie && (
       <MovieEditModal

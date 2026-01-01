@@ -1,7 +1,12 @@
 // components/MovieCard.tsx
 import { Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useState } from "react";
 import { Movie } from "@/types/movies";
 
@@ -25,64 +30,108 @@ export function MovieCard({ movie, onClick, onDelete }: MovieCardProps) {
     }
   };
 
-  return (
-    <div className="relative group cursor-pointer" onClick={onClick}>
-      {/* Botão de Delete */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsDeleteDialogOpen(true);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
-        
-        <DialogContent>
-          <DialogTitle>Confirmar Exclusão</DialogTitle>
-          <p>Tem certeza que deseja excluir {movie.title}?</p>
-          <div className="flex gap-2 justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Excluindo..." : "Excluir"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+  const score =
+    movie.status === "watched" ? movie.rating ?? "N/A" : movie.score_imdb;
 
-      {/* Badge de Avaliação */}
-      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/80 text-white px-2 py-1 rounded-md">
-        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-        <span className="text-sm font-medium">
-          {movie.status === 'watched' 
-            ? movie.rating ?? 'N/A'
-            : movie.score_imdb}
-        </span>
+  return (
+    <div
+      className="group relative cursor-pointer rounded-xl focus-within:ring-2 focus-within:ring-ring"
+      onClick={onClick}
+    >
+      {/* Área do pôster com proporção fixa */}
+      <div className="relative overflow-hidden rounded-xl bg-muted">
+        {/* Botão de Delete - visível no mobile, hover no desktop */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="destructive"
+              size="icon"
+              className="
+                absolute right-2 top-2 z-20
+                h-8 w-8 md:h-9 md:w-9
+                opacity-100 md:opacity-0
+                md:group-hover:opacity-100
+                transition-opacity
+              "
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDeleteDialogOpen(true);
+              }}
+              aria-label={`Excluir ${movie.title}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir <span className="font-medium">{movie.title}</span>?
+            </p>
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDeleteDialogOpen(false);
+                }}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                variant="destructive"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+                disabled={isDeleting}
+                className="w-full sm:w-auto"
+              >
+                {isDeleting ? "Excluindo..." : "Excluir"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Badge de Avaliação */}
+        <div
+          className="
+            absolute left-2 top-2 z-10
+            flex items-center gap-1 rounded-md
+            bg-black/80 px-2 py-1 text-white
+            text-xs sm:text-sm
+          "
+        >
+          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          <span className="font-medium">{score}</span>
+        </div>
+
+        {/* Imagem com aspect ratio fixo (pôster) */}
+        <img
+          src={movie.poster || "/placeholder.svg"}
+          alt={movie.title}
+          className="
+            aspect-[2/3] w-full
+            object-cover
+            transition-transform duration-300
+            md:group-hover:scale-[1.02]
+          "
+          loading="lazy"
+        />
       </div>
 
-      {/* Conteúdo normal do card */}
-      <img
-        src={movie.poster || "/placeholder.svg"}
-        alt={movie.title}
-        className="w-full h-auto md:h-48 object-cover rounded-lg"
-      />
-      <div className="mt-2">
-        <h3 className="font-medium">{movie.title}</h3>
-        <p className="text-sm text-gray-500">{movie.year}</p>
+      {/* Texto */}
+      <div className="mt-2 space-y-0.5">
+        <h3 className="text-sm font-semibold leading-snug sm:text-base line-clamp-2">
+          {movie.title}
+        </h3>
+        <p className="text-xs text-muted-foreground sm:text-sm">{movie.year}</p>
       </div>
     </div>
   );

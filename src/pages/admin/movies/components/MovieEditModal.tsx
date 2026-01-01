@@ -46,13 +46,13 @@ export function MovieEditModal({ movie, open, onOpenChange, onMovieUpdated }: Mo
       };
 
       await updateMovie(updateData);
-      
+
       toast({
         title: "Sucesso",
         description: "Filme atualizado com sucesso!",
         duration: 2000,
       });
-      
+
       onOpenChange(false);
       onMovieUpdated();
     } catch (error) {
@@ -69,20 +69,23 @@ export function MovieEditModal({ movie, open, onOpenChange, onMovieUpdated }: Mo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg">
         <DialogTitle>Editar Filme</DialogTitle>
-        
-        <div className="flex items-center gap-4">
-          <img 
-            src={movie.poster || "/placeholder.svg"} 
-            alt={movie.title} 
-            className="w-full md:w-20 h-auto md:h-30 object-cover"
+
+        <div className="flex items-start gap-3 sm:gap-4">
+          <img
+            src={movie.poster || "/placeholder.svg"}
+            alt={movie.title}
+            className="h-20 w-14 flex-none rounded object-cover sm:h-24 sm:w-16"
           />
-          <div>
-            <h3 className="font-medium text-lg">{movie.title} ({movie.year})</h3>
-            <p className="text-sm text-gray-500">{movie.imdb_id}</p>
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-medium sm:text-lg">
+              {movie.title} ({movie.year})
+            </h3>
+            <p className="truncate text-sm text-muted-foreground">{movie.imdb_id}</p>
           </div>
         </div>
+
 
         <div className="space-y-4">
           {movie.status === MovieStatus.TO_WATCH ? (
@@ -109,22 +112,15 @@ export function MovieEditModal({ movie, open, onOpenChange, onMovieUpdated }: Mo
             />
           )}
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex-1"
-            >
+            <Button onClick={handleSave} disabled={loading} className="w-full sm:flex-1">
               {loading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
