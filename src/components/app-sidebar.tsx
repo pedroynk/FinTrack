@@ -36,7 +36,7 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "",
+          url: "/",
         },
         {
           title: "Dimensões",
