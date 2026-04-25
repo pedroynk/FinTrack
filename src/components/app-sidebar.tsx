@@ -43,6 +43,10 @@ const data = {
           url: "/finance/dimensions",
         },
         {
+          title: "Orçamento",
+          url: "/finance/budget",
+        },
+        {
           title: "Parcelas",
           url: "/finance/recurring",
         },

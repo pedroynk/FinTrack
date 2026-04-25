@@ -73,3 +73,43 @@ export interface ClassCreateRequest {
 export interface ClassUpdateRequest extends Partial<ClassCreateRequest> {
   id: number;
 }
+
+// Budget
+export interface MonthlyBudget {
+  id: number;
+  user_id: number;
+  type_id: number;
+  class_id: number | null;
+  budget_month: string;
+  planned_value: number;
+  created_at: string;
+}
+
+export interface MonthlyBudgetCreateRequest {
+  type_id: number | null;
+  class_id: number | null;
+  budget_month: string;
+  planned_value: number;
+}
+
+export interface MonthlyBudgetUpdateRequest {
+  id: number;
+  type_id?: number | null;
+  class_id?: number | null;
+  budget_month?: string;
+  planned_value?: number;
+}
+
+export interface MonthlyBudgetSummary {
+  id: number;
+  type_id: number;
+  type_name: string;
+  class_id: number | null;
+  class_name: string | null;
+  budget_month: string;
+  planned_value: number;
+  spent_value: number;
+  remaining_value: number;
+  percentage_used: number;
+    status: 'OK' | 'ATENÇÃO' | 'CRÍTICO' | 'ESTOUROU';
+}

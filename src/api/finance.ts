@@ -1,5 +1,18 @@
 import { supabase } from "@/lib/supabase";
-import { Class, ClassCreateRequest, ClassUpdateRequest, Nature, Transaction, TransactionCreateRequest, Type, TypeCreateRequest, TypeUpdateRequest } from "@/types/finance";
+import {
+  Class, ClassCreateRequest,
+  ClassUpdateRequest,
+  Nature,
+  Transaction,
+  TransactionCreateRequest,
+  Type,
+  TypeCreateRequest,
+  TypeUpdateRequest,
+  MonthlyBudget,
+  MonthlyBudgetCreateRequest,
+  MonthlyBudgetUpdateRequest,
+  MonthlyBudgetSummary,
+} from "@/types/finance";
 
 export async function fetchNatures(): Promise<Nature[]> {
   const { data, error } = await supabase
@@ -21,7 +34,7 @@ export async function fetchTypes(): Promise<Type[]> {
 
 
   if (error) throw new Error(error.message);
-  
+
   return data || []
 }
 
@@ -38,7 +51,7 @@ export async function createTypeApi(newType: TypeCreateRequest): Promise<void> {
     const lastOrder = data && data.length > 0 ? data[0].order : 0;
     newType.order = lastOrder + 1;
   }
-  
+
   const { error } = await supabase
     .from('type')
     .insert([newType])
@@ -46,7 +59,7 @@ export async function createTypeApi(newType: TypeCreateRequest): Promise<void> {
   if (error) throw error;
 }
 
-export async function updateTypeApi(updateData: TypeUpdateRequest): Promise<void>{
+export async function updateTypeApi(updateData: TypeUpdateRequest): Promise<void> {
   const { id, ...updateFields } = updateData;
 
   const { error } = await supabase
@@ -81,7 +94,7 @@ export async function fetchClasses(): Promise<Class[]> {
 }
 
 
-export async function createClassApi(newClass: ClassCreateRequest): Promise<void> {  
+export async function createClassApi(newClass: ClassCreateRequest): Promise<void> {
   const { error } = await supabase
     .from('class')
     .insert([newClass])
@@ -89,9 +102,9 @@ export async function createClassApi(newClass: ClassCreateRequest): Promise<void
   if (error) throw error;
 }
 
-export async function updateClassApi(updateData: ClassUpdateRequest): Promise<void>{
+export async function updateClassApi(updateData: ClassUpdateRequest): Promise<void> {
   const { id, ...updateFields } = updateData;
-  
+
   const { error } = await supabase
     .from('class')
     .update(updateFields)
@@ -139,7 +152,7 @@ export async function fetchDimensions() {
     throw new Error(error.message);
   }
 
-  return data; 
+  return data;
 }
 
 export async function fetchTransactions(
@@ -169,7 +182,7 @@ export async function fetchTransactions(
   if (error) {
     throw error;
   }
-  
+
   return data || [];
 }
 
@@ -207,3 +220,72 @@ export async function updateTransactionApi(
     throw error;
   }
 }
+
+// Monthly Budget
+
+export async function fetchMonthlyBudgets(
+  budgetMonth: string,
+  userId: string
+): Promise<MonthlyBudget[]> {
+  const { data, error } = await supabase
+    .from("monthly_budget")
+    .select(`
+      *,
+      type:type_id(id, name, hex_color, lucide_icon),
+      class:class_id(id, name)
+    `)
+    .eq("user_id", userId)
+    .eq("budget_month", budgetMonth)
+    .order("id", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return data || [];
+}
+
+export async function createMonthlyBudgetApi(
+  newBudget: MonthlyBudgetCreateRequest
+): Promise<void> {
+  const { error } = await supabase
+    .from("monthly_budget")
+    .insert([newBudget]);
+
+  if (error) throw error;
+}
+
+export async function updateMonthlyBudgetApi(
+  updateData: MonthlyBudgetUpdateRequest
+): Promise<void> {
+  const { id, ...updateFields } = updateData;
+
+  const { error } = await supabase
+    .from("monthly_budget")
+    .update(updateFields)
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function deleteMonthlyBudgetApi(budgetId: number): Promise<void> {
+  const { error } = await supabase
+    .from("monthly_budget")
+    .delete()
+    .eq("id", budgetId);
+
+  if (error) throw error;
+}
+
+export async function fetchMonthlyBudgetSummary(
+  budgetMonth: string
+): Promise<MonthlyBudgetSummary[]> {
+  const { data, error } = await supabase
+    .from("vw_monthly_budget_summary")
+    .select("*")
+    .eq("budget_month", budgetMonth)
+    .order("type_name", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return data || [];
+}
+
