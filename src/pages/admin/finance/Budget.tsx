@@ -162,15 +162,8 @@ export default function Budget() {
   }
 
   return (
-    <main
-      className="
-        w-full max-w-7xl mx-auto
-        px-3 sm:px-4 md:px-6 lg:px-8
-        min-w-0 overflow-x-hidden
-        space-y-6
-      "
-    >
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Orçamento mensal
@@ -180,7 +173,7 @@ export default function Budget() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+        <div className="flex items-center gap-2">
           <Select
             onValueChange={(value) => setSelectedMonth(Number(value))}
             value={String(selectedMonth)}
@@ -228,7 +221,7 @@ export default function Budget() {
             </SelectContent>
           </Select>
         </div>
-      </section>
+      </div>
 
       <BudgetSummary
         planned={totals.planned}
@@ -248,19 +241,17 @@ export default function Budget() {
         onClose={resetForm}
       />
 
-      <section className="w-full min-w-0 overflow-x-auto">
-        <BudgetTable
-          budgets={summary}
-          loading={loading}
-          confirmOpen={confirmOpen}
-          setConfirmOpen={setConfirmOpen}
-          selectedBudget={selectedBudget}
-          setSelectedBudget={setSelectedBudget}
-          deleteBudget={deleteBudget}
-          deleteLoading={deleteLoading}
-          handleEdit={handleEdit}
-        />
-      </section>
-    </main>
+      <BudgetTable
+        budgets={summary}
+        loading={loading}
+        confirmOpen={confirmOpen}
+        setConfirmOpen={setConfirmOpen}
+        selectedBudget={selectedBudget}
+        setSelectedBudget={setSelectedBudget}
+        deleteBudget={deleteBudget}
+        deleteLoading={deleteLoading}
+        handleEdit={handleEdit}
+      />
+    </div>
   );
 }
