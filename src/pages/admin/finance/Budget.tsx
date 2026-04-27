@@ -110,13 +110,18 @@ export default function Budget() {
   }
 
   async function saveBudget() {
+    const payload = {
+      ...newBudget,
+      budget_month: newBudget.budget_month || budgetMonth,
+    };
+
     if (isEditing && editingBudgetId) {
       await updateMonthlyBudgetApi({
         id: editingBudgetId,
-        ...newBudget,
+        ...payload,
       });
     } else {
-      await createMonthlyBudgetApi(newBudget);
+      await createMonthlyBudgetApi(payload);
     }
 
     setOpen(false);
@@ -145,14 +150,9 @@ export default function Budget() {
 
     try {
       await deleteMonthlyBudgetApi(selectedBudget.id);
-
-      setSummary((prev) =>
-        prev.filter((item) => item.id !== selectedBudget.id)
-      );
-
+      setSummary((prev) => prev.filter((item) => item.id !== selectedBudget.id));
       setConfirmOpen(false);
       setSelectedBudget(null);
-
       await loadBudgetData();
     } catch (error) {
       console.error("Erro ao excluir orçamento:", error);
@@ -162,18 +162,16 @@ export default function Budget() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Orçamento mensal
-          </h1>
+    <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">Orçamento mensal</h1>
           <p className="text-sm text-muted-foreground">
             Acompanhe o planejado, gasto e restante por categoria.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 max-w-md">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:min-w-[240px]">
           <Select
             onValueChange={(value) => setSelectedMonth(Number(value))}
             value={String(selectedMonth)}
@@ -187,7 +185,6 @@ export default function Budget() {
                 const monthName = new Date(0, i).toLocaleString("pt-BR", {
                   month: "long",
                 });
-
                 const monthLabel =
                   monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
@@ -221,7 +218,7 @@ export default function Budget() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </section>
 
       <BudgetSummary
         planned={totals.planned}
@@ -230,18 +227,21 @@ export default function Budget() {
         percentage={totals.percentage}
       />
 
-      <BudgetFormDialog
-        open={open}
-        setOpen={setOpen}
-        newBudget={newBudget}
-        setNewBudget={setNewBudget}
-        saveBudget={saveBudget}
-        dimensions={dimensions}
-        isEditing={isEditing}
-        onClose={resetForm}
-      />
+      <section>
+        <BudgetFormDialog
+          open={open}
+          setOpen={setOpen}
+          newBudget={newBudget}
+          setNewBudget={setNewBudget}
+          saveBudget={saveBudget}
+          dimensions={dimensions}
+          isEditing={isEditing}
+          onClose={resetForm}
+          defaultBudgetMonth={budgetMonth}
+        />
+      </section>
 
-      <div className="w-full overflow-x-auto rounded-lg border">
+      <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
         <BudgetTable
           budgets={summary}
           loading={loading}
@@ -253,7 +253,7 @@ export default function Budget() {
           deleteLoading={deleteLoading}
           handleEdit={handleEdit}
         />
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

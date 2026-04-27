@@ -246,11 +246,48 @@ export async function fetchMonthlyBudgets(
 export async function createMonthlyBudgetApi(
   newBudget: MonthlyBudgetCreateRequest
 ): Promise<void> {
+  if (newBudget.type_id && !newBudget.class_id) {
+  const { data: existingParents, error: parentError } = await supabase
+    .from("monthly_budget")
+    .select("id, planned_value")
+    .eq("type_id", newBudget.type_id)
+    .eq("budget_month", newBudget.budget_month)
+    .is("class_id", null)
+    .order("id", { ascending: true })
+    .limit(1);
+
+  if (parentError) throw parentError;
+
+  const existingParent = existingParents?.[0];
+
+  if (existingParent) {
+    const newPlannedValue =
+      Number(existingParent.planned_value || 0) +
+      Number(newBudget.planned_value || 0);
+
+    const { error } = await supabase
+      .from("monthly_budget")
+      .update({ planned_value: newPlannedValue })
+      .eq("id", existingParent.id);
+
+    if (error) throw error;
+
+    return;
+  }
+}
+
   const { error } = await supabase
     .from("monthly_budget")
     .insert([newBudget]);
 
   if (error) throw error;
+
+  if (newBudget.type_id && newBudget.class_id) {
+    await syncParentMonthlyBudget(
+      newBudget.type_id,
+      newBudget.budget_month
+    );
+  }
 }
 
 export async function updateMonthlyBudgetApi(
@@ -258,21 +295,65 @@ export async function updateMonthlyBudgetApi(
 ): Promise<void> {
   const { id, ...updateFields } = updateData;
 
+  const { data: oldBudget, error: oldError } = await supabase
+    .from("monthly_budget")
+    .select("type_id, class_id, budget_month")
+    .eq("id", id)
+    .single();
+
+  if (oldError) throw oldError;
+
   const { error } = await supabase
     .from("monthly_budget")
     .update(updateFields)
     .eq("id", id);
 
   if (error) throw error;
+
+  const typeId = updateData.type_id ?? oldBudget.type_id;
+  const budgetMonth = updateData.budget_month ?? oldBudget.budget_month;
+  const classId = updateData.class_id ?? oldBudget.class_id;
+
+  if (typeId && classId) {
+    await syncParentMonthlyBudget(typeId, budgetMonth);
+  }
 }
 
 export async function deleteMonthlyBudgetApi(budgetId: number): Promise<void> {
+  const { data: oldBudget, error: oldError } = await supabase
+    .from("monthly_budget")
+    .select("id, type_id, class_id, budget_month")
+    .eq("id", budgetId)
+    .single();
+
+  if (oldError) throw oldError;
+
+  // Se deletar o pai, deleta pai + filhos do mesmo tipo/mês
+  if (oldBudget.type_id && oldBudget.class_id === null) {
+    const { error } = await supabase
+      .from("monthly_budget")
+      .delete()
+      .eq("type_id", oldBudget.type_id)
+      .eq("budget_month", oldBudget.budget_month);
+
+    if (error) throw error;
+
+    return;
+  }
+
   const { error } = await supabase
     .from("monthly_budget")
     .delete()
     .eq("id", budgetId);
 
   if (error) throw error;
+
+  if (oldBudget.type_id && oldBudget.class_id) {
+    await syncParentMonthlyBudget(
+      oldBudget.type_id,
+      oldBudget.budget_month
+    );
+  }
 }
 
 export async function fetchMonthlyBudgetSummary(
@@ -289,3 +370,59 @@ export async function fetchMonthlyBudgetSummary(
   return data || [];
 }
 
+async function syncParentMonthlyBudget(
+  typeId: number,
+  budgetMonth: string
+): Promise<void> {
+  const { data: children, error: childrenError } = await supabase
+    .from("monthly_budget")
+    .select("planned_value")
+    .eq("type_id", typeId)
+    .eq("budget_month", budgetMonth)
+    .not("class_id", "is", null);
+
+  if (childrenError) throw childrenError;
+
+  const childrenTotal = (children || []).reduce(
+    (acc, item) => acc + Number(item.planned_value || 0),
+    0
+  );
+
+  const { data: parents, error: parentError } = await supabase
+    .from("monthly_budget")
+    .select("id, planned_value")
+    .eq("type_id", typeId)
+    .eq("budget_month", budgetMonth)
+    .is("class_id", null)
+    .order("id", { ascending: true })
+    .limit(1);
+
+  if (parentError) throw parentError;
+
+  const parent = parents?.[0];
+
+  if (!parent && childrenTotal > 0) {
+    const { error } = await supabase.from("monthly_budget").insert([
+      {
+        type_id: typeId,
+        class_id: null,
+        budget_month: budgetMonth,
+        planned_value: childrenTotal,
+      },
+    ]);
+
+    if (error) throw error;
+    return;
+  }
+
+  if (!parent) return;
+
+  if (childrenTotal > Number(parent.planned_value || 0)) {
+    const { error } = await supabase
+      .from("monthly_budget")
+      .update({ planned_value: childrenTotal })
+      .eq("id", parent.id);
+
+    if (error) throw error;
+  }
+}

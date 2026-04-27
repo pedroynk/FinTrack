@@ -1,35 +1,259 @@
-import { useState, useEffect } from "react";
-import { Nature, Type } from "@/types/finance";
+import { useEffect, useMemo, useState } from "react";
 
-import TypeManager from "./components/TypeManager";
-import { fetchNatures, fetchTypes } from "@/api/finance";
-import ClassManager from "../home/components/ClassManager";
+import {
+  fetchMonthlyBudgetSummary,
+  createMonthlyBudgetApi,
+  updateMonthlyBudgetApi,
+  deleteMonthlyBudgetApi,
+  fetchDimensions,
+} from "@/api/finance";
 
+import { BudgetSummary } from "@/pages/admin/finance/components/BudgetSummary";
+import { BudgetTable } from "@/pages/admin/finance/components/BudgetTable";
+import { BudgetFormDialog } from "@/pages/admin/finance/components/BudgetFormDialog";
 
-export default function Dimensions() {
-  const [natures, setNatures] = useState<Nature[]>([]);
-  const [types, setTypes] = useState<Type[]>([]);
+import type {
+  Dimension,
+  MonthlyBudgetCreateRequest,
+  MonthlyBudgetSummary,
+} from "@/types/finance";
 
-  function refreshNatures() {
-    fetchNatures().then(setNatures);
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+function getEmptyBudget(): MonthlyBudgetCreateRequest {
+  return {
+    type_id: null,
+    class_id: null,
+    budget_month: "",
+    planned_value: 0,
+  };
+}
+
+export default function Budget() {
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+
+  const budgetMonth = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+
+  const [summary, setSummary] = useState<MonthlyBudgetSummary[]>([]);
+  const [dimensions, setDimensions] = useState<Dimension[]>([]);
+
+  const [open, setOpen] = useState(false);
+  const [newBudget, setNewBudget] = useState<MonthlyBudgetCreateRequest>(
+    getEmptyBudget()
+  );
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] =
+    useState<MonthlyBudgetSummary | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const totals = useMemo(() => {
+    const planned = summary.reduce(
+      (acc, item) => acc + Number(item.planned_value || 0),
+      0
+    );
+    const spent = summary.reduce(
+      (acc, item) => acc + Number(item.spent_value || 0),
+      0
+    );
+    const remaining = planned - spent;
+    const percentage =
+      planned > 0 ? Number(((spent / planned) * 100).toFixed(2)) : 0;
+
+    return { planned, spent, remaining, percentage };
+  }, [summary]);
+
+  async function loadBudgetData() {
+    setLoading(true);
+
+    try {
+      const summaryData = await fetchMonthlyBudgetSummary(budgetMonth);
+      setSummary(summaryData);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function refreshTypes() {
-    fetchTypes().then(setTypes)
+  async function loadDimensions() {
+    const data = await fetchDimensions();
+    setDimensions((data ?? []) as Dimension[]);
   }
 
   useEffect(() => {
-    refreshNatures();
-    refreshTypes();
+    loadBudgetData();
+  }, [budgetMonth]);
+
+  useEffect(() => {
+    loadDimensions();
   }, []);
 
+  function resetForm() {
+    setNewBudget(getEmptyBudget());
+    setIsEditing(false);
+    setEditingBudgetId(null);
+  }
 
+  async function saveBudget() {
+    const payload = {
+      ...newBudget,
+      budget_month: newBudget.budget_month || budgetMonth,
+    };
+
+    if (isEditing && editingBudgetId) {
+      await updateMonthlyBudgetApi({
+        id: editingBudgetId,
+        ...payload,
+      });
+    } else {
+      await createMonthlyBudgetApi(payload);
+    }
+
+    setOpen(false);
+    resetForm();
+    await loadBudgetData();
+  }
+
+  function handleEdit(budget: MonthlyBudgetSummary) {
+    setIsEditing(true);
+    setEditingBudgetId(budget.id);
+
+    setNewBudget({
+      type_id: budget.type_id,
+      class_id: budget.class_id,
+      budget_month: budget.budget_month,
+      planned_value: Number(budget.planned_value),
+    });
+
+    setOpen(true);
+  }
+
+  async function deleteBudget() {
+    if (!selectedBudget) return;
+
+    setDeleteLoading(String(selectedBudget.id));
+
+    try {
+      await deleteMonthlyBudgetApi(selectedBudget.id);
+      setSummary((prev) => prev.filter((item) => item.id !== selectedBudget.id));
+      setConfirmOpen(false);
+      setSelectedBudget(null);
+      await loadBudgetData();
+    } catch (error) {
+      console.error("Erro ao excluir orçamento:", error);
+    } finally {
+      setDeleteLoading(null);
+    }
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-      <TypeManager natures={natures} types={types} refetchTypes={refreshTypes}/>
-      <ClassManager types={types}/>
+    <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">Orçamento mensal</h1>
+          <p className="text-sm text-muted-foreground">
+            Acompanhe o planejado, gasto e restante por categoria.
+          </p>
+        </div>
 
-    </div>
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:min-w-[240px]">
+          <Select
+            onValueChange={(value) => setSelectedMonth(Number(value))}
+            value={String(selectedMonth)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+
+            <SelectContent>
+              {[...Array(12)].map((_, i) => {
+                const monthName = new Date(0, i).toLocaleString("pt-BR", {
+                  month: "long",
+                });
+                const monthLabel =
+                  monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+                return (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {monthLabel}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <Select
+            onValueChange={(value) => setSelectedYear(Number(value))}
+            value={String(selectedYear)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+
+            <SelectContent>
+              {[...Array(currentYear - 2025 + 6)].map((_, i) => {
+                const year = 2025 + i;
+
+                return (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
+
+      <BudgetSummary
+        planned={totals.planned}
+        spent={totals.spent}
+        remaining={totals.remaining}
+        percentage={totals.percentage}
+      />
+
+      <section>
+        <BudgetFormDialog
+          open={open}
+          setOpen={setOpen}
+          newBudget={newBudget}
+          setNewBudget={setNewBudget}
+          saveBudget={saveBudget}
+          dimensions={dimensions}
+          isEditing={isEditing}
+          onClose={resetForm}
+          defaultBudgetMonth={budgetMonth}
+        />
+      </section>
+
+      <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
+        <BudgetTable
+          budgets={summary}
+          loading={loading}
+          confirmOpen={confirmOpen}
+          setConfirmOpen={setConfirmOpen}
+          selectedBudget={selectedBudget}
+          setSelectedBudget={setSelectedBudget}
+          deleteBudget={deleteBudget}
+          deleteLoading={deleteLoading}
+          handleEdit={handleEdit}
+        />
+      </section>
+    </main>
   );
 }

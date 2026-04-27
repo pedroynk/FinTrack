@@ -37,16 +37,8 @@ interface BudgetFormDialogProps {
   saveBudget: () => void;
   dimensions: Dimension[];
   isEditing: boolean;
+  defaultBudgetMonth: string;
   onClose: () => void;
-}
-
-function getEmptyBudget(): MonthlyBudgetCreateRequest {
-  return {
-    type_id: null,
-    class_id: null,
-    budget_month: "",
-    planned_value: 0,
-  };
 }
 
 export function BudgetFormDialog({
@@ -58,6 +50,7 @@ export function BudgetFormDialog({
   dimensions,
   isEditing,
   onClose,
+  defaultBudgetMonth,
 }: BudgetFormDialogProps) {
   const [formError, setFormError] = useState("");
   const [selectedNature, setSelectedNature] = useState<number | null>(null);
@@ -101,10 +94,10 @@ export function BudgetFormDialog({
       return;
     }
 
-    if (!newBudget.budget_month) {
-      setFormError("Selecione o Mês/Ano.");
-      return;
-    }
+if (!newBudget.budget_month && !defaultBudgetMonth) {
+  setFormError("Selecione o Mês/Ano.");
+  return;
+}
 
     setFormError("");
     saveBudget();
@@ -129,16 +122,22 @@ export function BudgetFormDialog({
       }}
     >
       {!isEditing && (
-        <DialogTrigger asChild>
-          <Button
-            onClick={() => {
-              setNewBudget(getEmptyBudget());
-              clearInternalState();
-            }}
-          >
-            Adicionar Orçamento
-          </Button>
-        </DialogTrigger>
+<DialogTrigger asChild>
+  <Button
+    onClick={() => {
+      setNewBudget({
+        type_id: null,
+        class_id: null,
+        budget_month: defaultBudgetMonth,
+        planned_value: 0,
+      });
+
+      clearInternalState();
+    }}
+  >
+    Adicionar Orçamento
+  </Button>
+</DialogTrigger>
       )}
 
       <DialogContent className="max-w-md sm:max-w-lg w-full p-4 sm:p-6">
@@ -253,7 +252,6 @@ export function BudgetFormDialog({
             step="0.01"
             required
             value={newBudget.planned_value || ""}
-            placeholder="Ex: 650"
             onChange={(e) =>
               setNewBudget({
                 ...newBudget,
@@ -266,15 +264,15 @@ export function BudgetFormDialog({
             Mês/Ano <span className="text-red-500">*</span>
           </Label>
 
-          <MonthYearPicker
-            value={newBudget.budget_month}
-            onChange={(value) =>
-              setNewBudget({
-                ...newBudget,
-                budget_month: value,
-              })
-            }
-          />
+<MonthYearPicker
+  value={newBudget.budget_month || defaultBudgetMonth}
+  onChange={(value) =>
+    setNewBudget({
+      ...newBudget,
+      budget_month: value,
+    })
+  }
+/>
 
           {formError && <p className="text-red-500 text-sm">{formError}</p>}
 

@@ -219,8 +219,9 @@ export function TransactionFormDialog({
           <Input
             type="number"
             min="1"
+            step="0.01"
             required
-            value={newTransaction.value}
+            value={newTransaction.value || ""}
             onChange={(e) =>
               setNewTransaction({
                 ...newTransaction,

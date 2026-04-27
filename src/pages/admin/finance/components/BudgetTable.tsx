@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { Pen, Trash2 } from "lucide-react";
 
 import {
@@ -85,13 +86,94 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function getRemainingClass(budget: MonthlyBudgetSummary) {
+function getRemainingClass(budget?: MonthlyBudgetSummary | null) {
+  if (!budget) return "text-muted-foreground";
+
   const remaining = Number(budget.remaining_value || 0);
   const planned = Number(budget.planned_value || 0);
 
   if (remaining < 0) return "text-red-500";
   if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
   return "text-green-500";
+}
+
+function BudgetActions({
+  budget,
+  confirmOpen,
+  setConfirmOpen,
+  selectedBudget,
+  setSelectedBudget,
+  deleteBudget,
+  deleteLoading,
+  handleEdit,
+}: {
+  budget: MonthlyBudgetSummary;
+  confirmOpen: boolean;
+  setConfirmOpen: (open: boolean) => void;
+  selectedBudget: MonthlyBudgetSummary | null;
+  setSelectedBudget: (budget: MonthlyBudgetSummary | null) => void;
+  deleteBudget: () => void;
+  deleteLoading: string | null;
+  handleEdit: (budget: MonthlyBudgetSummary) => void;
+}) {
+  return (
+    <div className="flex justify-end gap-2">
+      <Button variant="outline" size="icon" onClick={() => handleEdit(budget)}>
+        <Pen className="h-4 w-4 text-blue-500" />
+      </Button>
+
+      <AlertDialog
+        open={confirmOpen && selectedBudget?.id === budget.id}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) setSelectedBudget(null);
+        }}
+      >
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setSelectedBudget(budget);
+              setConfirmOpen(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </AlertDialogTrigger>
+
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Deseja remover este orçamento?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setConfirmOpen(false);
+                setSelectedBudget(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                deleteBudget();
+              }}
+              disabled={deleteLoading === String(budget.id)}
+            >
+              {deleteLoading === String(budget.id) ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 export function BudgetTable({
@@ -105,15 +187,11 @@ export function BudgetTable({
   deleteLoading,
   handleEdit,
 }: BudgetTableProps) {
-  
-  // 🔥 AGRUPAMENTO POR TIPO
   const groupedBudgets = budgets.reduce<Record<string, MonthlyBudgetSummary[]>>(
     (acc, budget) => {
       const key = budget.type_name ?? "Sem tipo";
-
       if (!acc[key]) acc[key] = [];
       acc[key].push(budget);
-
       return acc;
     },
     {}
@@ -142,142 +220,132 @@ export function BudgetTable({
               </TableCell>
             </TableRow>
           ) : budgets.length ? (
-            Object.entries(groupedBudgets).map(([typeName, items]) => (
-              <>
-                {/* HEADER DO TIPO */}
-                <TableRow key={typeName} className="bg-muted/30 hover:bg-muted/30">
-                  <TableCell colSpan={7} className="py-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold">{typeName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {items.length} orçamento(s)
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+            Object.entries(groupedBudgets).map(([typeName, items]) => {
+              const parent = items.find((b) => b.class_id === null);
+              const children = items.filter((b) => b.class_id !== null);
 
-                {/* SUBCLASSES */}
-                {items.map((budget) => (
-                  <TableRow
-                    key={budget.id}
-                    className="transition-colors hover:bg-muted/40"
-                  >
+              return (
+                <Fragment key={typeName}>
+                  <TableRow className="bg-muted/30 font-semibold hover:bg-muted/30">
                     <TableCell>
-                      <div className="flex items-center gap-3 pl-4">
-                        <div className="h-8 w-0.5 rounded-full bg-muted-foreground/30" />
-
-                        <div className="flex flex-col">
-                          <span className="font-semibold">
-                            {budget.class_name ?? "Geral do tipo"}
-                          </span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold">{typeName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {children.length} classe(s)
+                        </span>
                       </div>
                     </TableCell>
 
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(budget.planned_value)}
+                    <TableCell className="text-right">
+                      {formatCurrency(parent?.planned_value ?? 0)}
                     </TableCell>
 
                     <TableCell className="text-right">
-                      {formatCurrency(budget.spent_value)}
+                      {formatCurrency(parent?.spent_value ?? 0)}
                     </TableCell>
 
-                    <TableCell
-                      className={`text-right font-semibold ${getRemainingClass(budget)}`}
-                    >
-                      {formatCurrency(budget.remaining_value)}
+                    <TableCell className={`text-right font-semibold ${getRemainingClass(parent)}`}>
+                      {formatCurrency(parent?.remaining_value ?? 0)}
                     </TableCell>
 
                     <TableCell>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-medium">
-                            {Number(budget.percentage_used || 0).toFixed(0)}%
+                            {Number(parent?.percentage_used || 0).toFixed(0)}%
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            usado
-                          </span>
+                          <span className="text-xs text-muted-foreground">usado</span>
                         </div>
-
                         <ProgressBar
-                          value={Number(budget.percentage_used || 0)}
-                          status={budget.status}
+                          value={Number(parent?.percentage_used || 0)}
+                          status={parent?.status ?? "OK"}
                         />
                       </div>
                     </TableCell>
 
                     <TableCell>
-                      <StatusBadge status={budget.status} />
+                      <StatusBadge status={parent?.status ?? "OK"} />
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleEdit(budget)}
-                        >
-                          <Pen className="h-4 w-4 text-blue-500" />
-                        </Button>
-
-                        <AlertDialog
-                          open={confirmOpen && selectedBudget?.id === budget.id}
-                          onOpenChange={(open) => {
-                            setConfirmOpen(open);
-                            if (!open) setSelectedBudget(null);
-                          }}
-                        >
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedBudget(budget);
-                                setConfirmOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
-
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. Deseja remover este orçamento?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-
-                            <AlertDialogFooter>
-                              <AlertDialogCancel
-                                onClick={() => {
-                                  setConfirmOpen(false);
-                                  setSelectedBudget(null);
-                                }}
-                              >
-                                Cancelar
-                              </AlertDialogCancel>
-
-                              <AlertDialogAction
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  deleteBudget();
-                                }}
-                                disabled={deleteLoading === String(budget.id)}
-                              >
-                                {deleteLoading === String(budget.id)
-                                  ? "Excluindo..."
-                                  : "Excluir"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                      {parent && (
+                        <BudgetActions
+                          budget={parent}
+                          confirmOpen={confirmOpen}
+                          setConfirmOpen={setConfirmOpen}
+                          selectedBudget={selectedBudget}
+                          setSelectedBudget={setSelectedBudget}
+                          deleteBudget={deleteBudget}
+                          deleteLoading={deleteLoading}
+                          handleEdit={handleEdit}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
-              </>
-            ))
+
+                  {children.map((budget) => (
+                    <TableRow
+                      key={budget.id}
+                      className="transition-colors hover:bg-muted/40"
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3 pl-6">
+                          <div className="h-8 w-0.5 rounded-full bg-muted-foreground/30" />
+                          <span className="font-semibold">
+                            {budget.class_name ?? "Sem classe"}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(budget.planned_value)}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        {formatCurrency(budget.spent_value)}
+                      </TableCell>
+
+                      <TableCell className={`text-right font-semibold ${getRemainingClass(budget)}`}>
+                        {formatCurrency(budget.remaining_value)}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium">
+                              {Number(budget.percentage_used || 0).toFixed(0)}%
+                            </span>
+                            <span className="text-xs text-muted-foreground">usado</span>
+                          </div>
+
+                          <ProgressBar
+                            value={Number(budget.percentage_used || 0)}
+                            status={budget.status}
+                          />
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <StatusBadge status={budget.status} />
+                      </TableCell>
+
+                      <TableCell>
+                        <BudgetActions
+                          budget={budget}
+                          confirmOpen={confirmOpen}
+                          setConfirmOpen={setConfirmOpen}
+                          selectedBudget={selectedBudget}
+                          setSelectedBudget={setSelectedBudget}
+                          deleteBudget={deleteBudget}
+                          deleteLoading={deleteLoading}
+                          handleEdit={handleEdit}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">

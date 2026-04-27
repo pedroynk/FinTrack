@@ -93,90 +93,92 @@ export function RecurringFormDialog({
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-4">
-          <Label>
-            Natureza <span className="text-red-500">*</span>
-          </Label>
-          <Select
-            value={String(selectedNature)}
-            onValueChange={(value) => {
-              setSelectedNature(parseInt(value));
-              setSelectedType(null);
-              setNewRecurring({ ...newRecurring, class_id: 0 });
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione a Natureza" />
-            </SelectTrigger>
-            <SelectContent>
-              {dimensions.map((nature) => (
-                <SelectItem key={nature.id} value={String(nature.id)}>
-                  {nature.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Label>
+              Natureza <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={String(selectedNature)}
+              onValueChange={(value) => {
+                setSelectedNature(parseInt(value));
+                setSelectedType(null);
+                setNewRecurring({ ...newRecurring, class_id: 0 });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione a Natureza" />
+              </SelectTrigger>
+              <SelectContent>
+                {dimensions.map((nature) => (
+                  <SelectItem key={nature.id} value={String(nature.id)}>
+                    {nature.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Type Select */}
-          {selectedNature && (
-            <>
-              <Label>
-                Tipo <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={String(selectedType)}
-                onValueChange={(value) => {
-                  setSelectedType(parseInt(value));
-                  setNewRecurring({ ...newRecurring, class_id: 0 });
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione o Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {types.map((type) => (
-                    <SelectItem key={type.id} value={String(type.id)}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
-
-          {/* Class Select */}
-          {selectedType && (
-            <>
-              <Label>
-                Classe <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={String(newRecurring.class_id)}
-                onValueChange={(value) =>
-                  setNewRecurring({
-                    ...newRecurring,
-                    class_id: Number(value),
-                  })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione a Classe" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
+            {/* Type Select */}
+            {selectedNature && (
+              <>
+                <Label>
+                  Tipo <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={String(selectedType)}
+                  onValueChange={(value) => {
+                    setSelectedType(parseInt(value));
+                    setNewRecurring({ ...newRecurring, class_id: 0 });
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {types.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
             )}
 
-            <Label>Valor <span className="text-red-500">*</span></Label>
+            {/* Class Select */}
+            {selectedType && (
+              <>
+                <Label>
+                  Classe <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={String(newRecurring.class_id)}
+                  onValueChange={(value) =>
+                    setNewRecurring({
+                      ...newRecurring,
+                      class_id: Number(value),
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione a Classe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+
+            <Label>Valor Parcela<span className="text-red-500">*</span></Label>
             <Input
               type="number"
               min="1"
-              value={newRecurring.value}
+              step="0.01"
+              required
+              value={newRecurring.value || ""}
               onChange={(e) =>
                 setNewRecurring({
                   ...newRecurring,
@@ -197,11 +199,11 @@ export function RecurringFormDialog({
             />
             <Label>Frequência <span className="text-red-500">*</span></Label>
             <Select
-  onValueChange={(value: string) =>
-    setNewRecurring({ ...newRecurring, frequency: value })
-  }
-  value={newRecurring.frequency}
->
+              onValueChange={(value: string) =>
+                setNewRecurring({ ...newRecurring, frequency: value })
+              }
+              value={newRecurring.frequency}
+            >
 
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione a Frequência" />
