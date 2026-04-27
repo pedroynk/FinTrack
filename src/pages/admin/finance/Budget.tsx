@@ -162,8 +162,8 @@ export default function Budget() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Orçamento mensal
@@ -173,12 +173,12 @@ export default function Budget() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-3 max-w-md">
           <Select
             onValueChange={(value) => setSelectedMonth(Number(value))}
             value={String(selectedMonth)}
           >
-            <SelectTrigger className="h-9 w-[118px] px-2 text-xs">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
 
@@ -204,7 +204,7 @@ export default function Budget() {
             onValueChange={(value) => setSelectedYear(Number(value))}
             value={String(selectedYear)}
           >
-            <SelectTrigger className="h-9 w-[84px] px-2 text-xs">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>
 
@@ -241,17 +241,19 @@ export default function Budget() {
         onClose={resetForm}
       />
 
-      <BudgetTable
-        budgets={summary}
-        loading={loading}
-        confirmOpen={confirmOpen}
-        setConfirmOpen={setConfirmOpen}
-        selectedBudget={selectedBudget}
-        setSelectedBudget={setSelectedBudget}
-        deleteBudget={deleteBudget}
-        deleteLoading={deleteLoading}
-        handleEdit={handleEdit}
-      />
+      <div className="w-full overflow-x-auto rounded-lg border">
+        <BudgetTable
+          budgets={summary}
+          loading={loading}
+          confirmOpen={confirmOpen}
+          setConfirmOpen={setConfirmOpen}
+          selectedBudget={selectedBudget}
+          setSelectedBudget={setSelectedBudget}
+          deleteBudget={deleteBudget}
+          deleteLoading={deleteLoading}
+          handleEdit={handleEdit}
+        />
+      </div>
     </div>
   );
 }
