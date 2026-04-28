@@ -12,6 +12,7 @@ import {
   MonthlyBudgetCreateRequest,
   MonthlyBudgetUpdateRequest,
   MonthlyBudgetSummary,
+  MonthlyBudgetSuggestion,
 } from "@/types/finance";
 
 export async function fetchNatures(): Promise<Nature[]> {
@@ -222,7 +223,6 @@ export async function updateTransactionApi(
 }
 
 // Monthly Budget
-
 export async function fetchMonthlyBudgets(
   budgetMonth: string,
   userId: string
@@ -425,4 +425,99 @@ async function syncParentMonthlyBudget(
 
     if (error) throw error;
   }
+}
+
+export type DuplicateBudgetMode = "missing_only" | "replace";
+
+export async function duplicateMonthlyBudgetApi(
+  fromBudgetMonth: string,
+  toBudgetMonths: string[],
+  mode: DuplicateBudgetMode
+): Promise<void> {
+  const { data: sourceBudgets, error: fetchError } = await supabase
+    .from("monthly_budget")
+    .select("type_id, class_id, planned_value")
+    .eq("budget_month", fromBudgetMonth);
+
+  if (fetchError) throw fetchError;
+
+  if (!sourceBudgets || sourceBudgets.length === 0) {
+    throw new Error("Nenhum orçamento encontrado no mês de origem.");
+  }
+
+  for (const toBudgetMonth of toBudgetMonths) {
+    if (mode === "replace") {
+      const { error: deleteError } = await supabase
+        .from("monthly_budget")
+        .delete()
+        .eq("budget_month", toBudgetMonth);
+
+      if (deleteError) throw deleteError;
+    }
+
+    if (mode === "missing_only") {
+      const { data: existingBudgets, error: existingError } = await supabase
+        .from("monthly_budget")
+        .select("type_id, class_id")
+        .eq("budget_month", toBudgetMonth);
+
+      if (existingError) throw existingError;
+
+      const existingKeys = new Set(
+        (existingBudgets || []).map(
+          (item) => `${item.type_id}-${item.class_id ?? "null"}`
+        )
+      );
+
+      const payload = sourceBudgets
+        .filter(
+          (budget) =>
+            !existingKeys.has(`${budget.type_id}-${budget.class_id ?? "null"}`)
+        )
+        .map((budget) => ({
+          type_id: budget.type_id,
+          class_id: budget.class_id,
+          budget_month: toBudgetMonth,
+          planned_value: budget.planned_value,
+        }));
+
+      if (payload.length > 0) {
+        const { error } = await supabase
+          .from("monthly_budget")
+          .insert(payload);
+
+        if (error) throw error;
+      }
+
+      continue;
+    }
+
+    const payload = sourceBudgets.map((budget) => ({
+      type_id: budget.type_id,
+      class_id: budget.class_id,
+      budget_month: toBudgetMonth,
+      planned_value: budget.planned_value,
+    }));
+
+    const { error } = await supabase
+      .from("monthly_budget")
+      .insert(payload);
+
+    if (error) throw error;
+  }
+}
+
+export async function fetchMonthlyBudgetSuggestions(
+  budgetMonth: string
+): Promise<MonthlyBudgetSuggestion[]> {
+  const { data, error } = await supabase.rpc(
+    "get_monthly_budget_suggestions",
+    {
+      p_budget_month: budgetMonth,
+    }
+  );
+
+  if (error) throw error;
+
+  return data || [];
 }

@@ -106,10 +106,22 @@ export interface MonthlyBudgetSummary {
   type_name: string;
   class_id: number | null;
   class_name: string | null;
+  nature_name: string;
+  expense_value: number;
+  income_value: number;
   budget_month: string;
   planned_value: number;
   spent_value: number;
   remaining_value: number;
   percentage_used: number;
     status: 'OK' | 'ATENÇÃO' | 'CRÍTICO' | 'ESTOUROU';
+}
+
+export interface MonthlyBudgetSuggestion {
+  type_id: number;
+  type_name: string;
+  class_id: number | null;
+  class_name: string | null;
+  suggested_value: number;
+  average_spent: number;
 }

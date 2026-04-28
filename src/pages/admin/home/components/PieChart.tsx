@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pie, PieChart, Sector, ResponsiveContainer } from "recharts";
 import {
   Card,
@@ -15,6 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export interface DonutChartData {
   type: string;
@@ -28,22 +29,49 @@ interface DonutChartProps {
   data: DonutChartData[];
 }
 
-const renderActiveShape = (props: any) => {
+const renderActiveShape = (isMobile: boolean) => (props: any) => {
   const RADIAN = Math.PI / 180;
-  const { 
-    cx, 
-    cy, 
-    midAngle, 
-    innerRadius, 
-    outerRadius, 
-    startAngle, 
-    endAngle, 
-    fill, 
-    payload, 
-    percent, 
-    value 
+  const {
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    payload,
+    percent,
+    value,
   } = props;
-  
+
+  if (isMobile) {
+    return (
+      <g>
+        <text
+          x={cx}
+          y={cy}
+          dy={4}
+          textAnchor="middle"
+          fill={fill}
+          className="text-xs font-semibold"
+        >
+          {payload.type}
+        </text>
+
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+        />
+      </g>
+    );
+  }
+
   const sin = Math.sin(-RADIAN * midAngle);
   const cos = Math.cos(-RADIAN * midAngle);
   const sx = cx + (outerRadius + 10) * cos;
@@ -52,13 +80,14 @@ const renderActiveShape = (props: any) => {
   const my = cy + (outerRadius + 30) * sin;
   const ex = mx + (cos >= 0 ? 1 : -1) * 22;
   const ey = my;
-  const textAnchor = cos >= 0 ? 'start' : 'end';
+  const textAnchor = cos >= 0 ? "start" : "end";
 
   return (
     <g>
       <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill}>
         {payload.type}
       </text>
+
       <Sector
         cx={cx}
         cy={cy}
@@ -68,6 +97,7 @@ const renderActiveShape = (props: any) => {
         endAngle={endAngle}
         fill={fill}
       />
+
       <Sector
         cx={cx}
         cy={cy}
@@ -77,21 +107,32 @@ const renderActiveShape = (props: any) => {
         outerRadius={outerRadius + 10}
         fill={fill}
       />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+
+      <path
+        d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+        stroke={fill}
+        fill="none"
+      />
+
       <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text 
-        x={ex + (cos >= 0 ? 1 : -1) * 12} 
-        y={ey} 
-        textAnchor={textAnchor} 
+
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        textAnchor={textAnchor}
         fill="white"
       >
-        {`${value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+        {value.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
       </text>
-      <text 
-        x={ex + (cos >= 0 ? 1 : -1) * 12} 
-        y={ey} 
-        dy={18} 
-        textAnchor={textAnchor} 
+
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        dy={18}
+        textAnchor={textAnchor}
         fill="#999"
       >
         {`(${(percent * 100).toFixed(2)}%)`}
@@ -103,16 +144,30 @@ const renderActiveShape = (props: any) => {
 export function DonutChart({
   title = "Percentual por Tipo",
   description = "Análise percentual por tipo de transação",
-  data
+  data,
 }: DonutChartProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { isMobile } = useSidebar();
+
+  const chartSize = useMemo(
+    () =>
+      isMobile
+        ? { height: 190, innerRadius: 45, outerRadius: 72 }
+        : { height: 400, innerRadius: 80, outerRadius: 110 },
+    [isMobile]
+  );
+
+  const activeShape = useMemo(
+    () => renderActiveShape(isMobile),
+    [isMobile]
+  );
 
   const onPieEnter = (_: any, index: number) => {
     setActiveIndex(index);
   };
 
   if (!data || data.length === 0) {
-    return <></>;
+    return null;
   }
 
   const chartConfig: ChartConfig = data.reduce(
@@ -127,29 +182,35 @@ export function DonutChart({
   );
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="flex flex-col w-full min-w-0 overflow-hidden">
+      <CardHeader className="items-center pb-2 px-3 sm:px-6">
+        <CardTitle className="text-base sm:text-lg text-center">
+          {title}
+        </CardTitle>
+        <CardDescription className="text-center text-xs sm:text-sm">
+          {description}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer config={chartConfig}>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
+
+      <CardContent className="flex-1 p-0 sm:p-2 overflow-hidden">
+        <ChartContainer config={chartConfig} className="w-full min-w-0">
+          <ResponsiveContainer width="100%" height={chartSize.height}>
+            <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent hideLabel />}
               />
+
               <Pie
                 activeIndex={activeIndex}
-                activeShape={renderActiveShape}
+                activeShape={activeShape}
                 data={data}
                 dataKey="total_value"
                 nameKey="type"
                 cx="50%"
                 cy="50%"
-                innerRadius={80}
-                outerRadius={110}
+                innerRadius={chartSize.innerRadius}
+                outerRadius={chartSize.outerRadius}
                 paddingAngle={2}
                 onMouseEnter={onPieEnter}
               />
@@ -159,4 +220,4 @@ export function DonutChart({
       </CardContent>
     </Card>
   );
-}
+} 

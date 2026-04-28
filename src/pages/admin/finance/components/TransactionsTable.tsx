@@ -79,11 +79,9 @@ export function TransactionsTable({
         <TableBody>
           {transactions.map((t) => (
             <TableRow key={t.id}>
+              <TableCell>{getIcon(t)}</TableCell>
               {!isMobile && (
-                <>
-                  <TableCell>{getIcon(t)}</TableCell>
-                  <TableCell>{t.class?.type?.nature?.name}</TableCell>
-                </>
+                <TableCell>{t.class?.type?.nature?.name}</TableCell>
               )}
               <TableCell>{t.class?.type?.name}</TableCell>
               <TableCell>{t.class?.name}</TableCell>

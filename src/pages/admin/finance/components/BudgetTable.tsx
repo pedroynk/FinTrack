@@ -45,13 +45,32 @@ const formatCurrency = (value: number) =>
     currency: "BRL",
   });
 
+function getRealizedValue(budget?: MonthlyBudgetSummary | null) {
+  if (!budget) return 0;
+
+  return budget.nature_name === "Receita"
+    ? Number(budget.income_value || 0)
+    : Number(budget.expense_value ?? budget.spent_value ?? 0);
+}
+
+function getRealizedLabel(budget?: MonthlyBudgetSummary | null) {
+  return budget?.nature_name === "Receita" ? "Recebido" : "Gasto";
+}
+
+function getRemainingLabel(budget?: MonthlyBudgetSummary | null) {
+  return budget?.nature_name === "Receita" ? "A receber" : "Restante";
+}
+
 function ProgressBar({ value, status }: { value: number; status: string }) {
   const normalized = Math.min(Number(value || 0), 100);
 
   const colorMap: Record<string, string> = {
     OK: "bg-green-500",
     ATENCAO: "bg-yellow-500",
+    ATENÇÃO: "bg-yellow-500",
     CRITICO: "bg-orange-500",
+    CRÍTICO: "bg-orange-500",
+    QUASE: "bg-yellow-500",
     ESTOUROU: "bg-red-500",
   };
 
@@ -69,7 +88,10 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     OK: "bg-green-500/15 text-green-500 border-green-500/30",
     ATENCAO: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+    ATENÇÃO: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
     CRITICO: "bg-orange-500/15 text-orange-500 border-orange-500/30",
+    CRÍTICO: "bg-orange-500/15 text-orange-500 border-orange-500/30",
+    QUASE: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
     ESTOUROU: "bg-red-500/15 text-red-500 border-red-500/30",
   };
 
@@ -91,6 +113,12 @@ function getRemainingClass(budget?: MonthlyBudgetSummary | null) {
 
   const remaining = Number(budget.remaining_value || 0);
   const planned = Number(budget.planned_value || 0);
+
+  if (budget.nature_name === "Receita") {
+    if (remaining <= 0) return "text-green-500";
+    if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
+    return "text-red-500";
+  }
 
   if (remaining < 0) return "text-red-500";
   if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
@@ -204,8 +232,8 @@ export function BudgetTable({
           <TableRow className="hover:bg-transparent">
             <TableHead className="min-w-[220px]">Categoria</TableHead>
             <TableHead className="text-right">Orçado</TableHead>
-            <TableHead className="text-right">Gasto</TableHead>
-            <TableHead className="text-right">Restante</TableHead>
+            <TableHead className="text-right">Realizado</TableHead>
+            <TableHead className="text-right">Saldo</TableHead>
             <TableHead className="min-w-[160px]">Uso</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -241,11 +269,21 @@ export function BudgetTable({
                     </TableCell>
 
                     <TableCell className="text-right">
-                      {formatCurrency(parent?.spent_value ?? 0)}
+                      <div className="flex flex-col">
+                        <span>{formatCurrency(getRealizedValue(parent))}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {getRealizedLabel(parent)}
+                        </span>
+                      </div>
                     </TableCell>
 
                     <TableCell className={`text-right font-semibold ${getRemainingClass(parent)}`}>
-                      {formatCurrency(parent?.remaining_value ?? 0)}
+                      <div className="flex flex-col">
+                        <span>{formatCurrency(parent?.remaining_value ?? 0)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {getRemainingLabel(parent)}
+                        </span>
+                      </div>
                     </TableCell>
 
                     <TableCell>
@@ -254,8 +292,11 @@ export function BudgetTable({
                           <span className="text-sm font-medium">
                             {Number(parent?.percentage_used || 0).toFixed(0)}%
                           </span>
-                          <span className="text-xs text-muted-foreground">usado</span>
+                          <span className="text-xs text-muted-foreground">
+                            {parent?.nature_name === "Receita" ? "recebido" : "usado"}
+                          </span>
                         </div>
+
                         <ProgressBar
                           value={Number(parent?.percentage_used || 0)}
                           status={parent?.status ?? "OK"}
@@ -302,11 +343,21 @@ export function BudgetTable({
                       </TableCell>
 
                       <TableCell className="text-right">
-                        {formatCurrency(budget.spent_value)}
+                        <div className="flex flex-col">
+                          <span>{formatCurrency(getRealizedValue(budget))}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {getRealizedLabel(budget)}
+                          </span>
+                        </div>
                       </TableCell>
 
                       <TableCell className={`text-right font-semibold ${getRemainingClass(budget)}`}>
-                        {formatCurrency(budget.remaining_value)}
+                        <div className="flex flex-col">
+                          <span>{formatCurrency(budget.remaining_value)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {getRemainingLabel(budget)}
+                          </span>
+                        </div>
                       </TableCell>
 
                       <TableCell>
@@ -315,7 +366,9 @@ export function BudgetTable({
                             <span className="text-sm font-medium">
                               {Number(budget.percentage_used || 0).toFixed(0)}%
                             </span>
-                            <span className="text-xs text-muted-foreground">usado</span>
+                            <span className="text-xs text-muted-foreground">
+                              {budget.nature_name === "Receita" ? "recebido" : "usado"}
+                            </span>
                           </div>
 
                           <ProgressBar

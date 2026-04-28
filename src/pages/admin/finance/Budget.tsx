@@ -5,17 +5,21 @@ import {
   createMonthlyBudgetApi,
   updateMonthlyBudgetApi,
   deleteMonthlyBudgetApi,
+  duplicateMonthlyBudgetApi,
+  fetchMonthlyBudgetSuggestions,
   fetchDimensions,
 } from "@/api/finance";
 
 import { BudgetSummary } from "@/pages/admin/finance/components/BudgetSummary";
 import { BudgetTable } from "@/pages/admin/finance/components/BudgetTable";
 import { BudgetFormDialog } from "@/pages/admin/finance/components/BudgetFormDialog";
+import { DuplicateBudgetDialog } from "@/pages/admin/finance/components/BudgetDuplicateFormDialog";
 
 import type {
   Dimension,
   MonthlyBudgetCreateRequest,
   MonthlyBudgetSummary,
+  MonthlyBudgetSuggestion,
 } from "@/types/finance";
 
 import {
@@ -25,6 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 function getEmptyBudget(): MonthlyBudgetCreateRequest {
   return {
@@ -36,6 +42,7 @@ function getEmptyBudget(): MonthlyBudgetCreateRequest {
 }
 
 export default function Budget() {
+  const { toast } = useToast();
   const today = new Date();
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
@@ -43,9 +50,19 @@ export default function Budget() {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<MonthlyBudgetSuggestion[]>([]);
+  const [summary, setSummary] = useState<MonthlyBudgetSummary[]>([]);
+  const filteredSuggestions = suggestions.filter((suggestion) => {
+    return !summary.some(
+      (budget) =>
+        budget.type_id === suggestion.type_id &&
+        budget.class_id === suggestion.class_id
+    );
+  });
+
   const budgetMonth = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
 
-  const [summary, setSummary] = useState<MonthlyBudgetSummary[]>([]);
   const [dimensions, setDimensions] = useState<Dimension[]>([]);
 
   const [open, setOpen] = useState(false);
@@ -64,20 +81,138 @@ export default function Budget() {
   const [loading, setLoading] = useState(false);
 
   const totals = useMemo(() => {
-    const planned = summary.reduce(
+    const parentBudgets = summary.filter((item) => item.class_id === null);
+
+    const planned = parentBudgets.reduce(
       (acc, item) => acc + Number(item.planned_value || 0),
       0
     );
-    const spent = summary.reduce(
-      (acc, item) => acc + Number(item.spent_value || 0),
+
+    const expense = parentBudgets.reduce(
+      (acc, item) => acc + Number(item.expense_value || 0),
       0
     );
-    const remaining = planned - spent;
-    const percentage =
-      planned > 0 ? Number(((spent / planned) * 100).toFixed(2)) : 0;
 
-    return { planned, spent, remaining, percentage };
+    const income = parentBudgets.reduce(
+      (acc, item) => acc + Number(item.income_value || 0),
+      0
+    );
+
+    const spent = expense;
+    const remaining = planned - expense;
+
+    const percentage =
+      planned > 0 ? Number(((expense / planned) * 100).toFixed(2)) : 0;
+
+    return {
+      planned,
+      spent,
+      expense,
+      income,
+      remaining,
+      percentage,
+    };
   }, [summary]);
+
+  const exceededBudgets = useMemo(() => {
+    return summary.filter(
+      (item) =>
+        item.class_id === null &&
+        item.nature_name === "Despesa" &&
+        Number(item.remaining_value || 0) < 0
+    );
+  }, [summary]);
+
+  const exceededAlerts = useMemo(() => {
+    return exceededBudgets.map((parent) => {
+      const children = summary.filter(
+        (item) =>
+          item.type_id === parent.type_id &&
+          item.class_id !== null &&
+          item.nature_name === "Despesa" &&
+          Number(item.remaining_value || 0) < 0
+      );
+
+      const mainCause = children.sort(
+        (a, b) =>
+          Math.abs(Number(b.remaining_value || 0)) -
+          Math.abs(Number(a.remaining_value || 0))
+      )[0];
+
+      return {
+        parent,
+        mainCause,
+      };
+    });
+  }, [exceededBudgets, summary]);
+
+  const exceededIncomeBudgets = useMemo(() => {
+    return summary.filter(
+      (item) =>
+        item.class_id === null &&
+        item.nature_name === "Receita" &&
+        Number(item.income_value || 0) > Number(item.planned_value || 0)
+    );
+  }, [summary]);
+
+  async function duplicateBudget(
+    months: string[],
+    mode: "missing_only" | "replace"
+  ) {
+    await duplicateMonthlyBudgetApi(budgetMonth, months, mode);
+    await loadBudgetData();
+  }
+
+  async function loadSuggestions() {
+    const data = await fetchMonthlyBudgetSuggestions(budgetMonth);
+    setSuggestions(data);
+  }
+
+  async function useSuggestion(item: MonthlyBudgetSuggestion) {
+    try {
+      await createMonthlyBudgetApi({
+        type_id: item.type_id,
+        class_id: item.class_id,
+        budget_month: budgetMonth,
+        planned_value: Number(item.suggested_value || 0),
+      });
+
+      toast({
+        title: "Orçamento criado",
+        description: `${item.type_name} / ${item.class_name} criado com base na sugestão.`,
+        duration: 2000,
+      });
+
+      await loadBudgetData();
+      await loadSuggestions();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: `Falha ao usar sugestão: ${error}`,
+        variant: "destructive",
+        duration: 2000,
+      });
+    }
+  }
+
+  const projectedExpense = useMemo(() => {
+    const today = new Date();
+
+    const isCurrentMonth =
+      selectedMonth === today.getMonth() + 1 &&
+      selectedYear === today.getFullYear();
+
+    if (!isCurrentMonth) {
+      return totals.expense;
+    }
+
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+    if (dayOfMonth <= 0) return totals.expense;
+
+    return Number(((totals.expense / dayOfMonth) * daysInMonth).toFixed(2));
+  }, [totals.expense, selectedMonth, selectedYear]);
 
   async function loadBudgetData() {
     setLoading(true);
@@ -97,6 +232,7 @@ export default function Budget() {
 
   useEffect(() => {
     loadBudgetData();
+    loadSuggestions();
   }, [budgetMonth]);
 
   useEffect(() => {
@@ -108,6 +244,7 @@ export default function Budget() {
     setIsEditing(false);
     setEditingBudgetId(null);
   }
+
 
   async function saveBudget() {
     const payload = {
@@ -222,12 +359,130 @@ export default function Budget() {
 
       <BudgetSummary
         planned={totals.planned}
-        spent={totals.spent}
-        remaining={totals.remaining}
-        percentage={totals.percentage}
+        expense={totals.expense}
+        income={totals.income}
+        projectedExpense={projectedExpense}
       />
 
-      <section>
+      {exceededAlerts.length > 0 && (
+        <section className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+          <h2 className="font-semibold text-red-500">
+            Atenção: orçamento estourado
+          </h2>
+
+          <div className="mt-2 space-y-2 text-sm">
+            {exceededAlerts.map(({ parent, mainCause }) => (
+              <div key={parent.id} className="text-red-400">
+                <p>
+                  {parent.type_name} estourou{" "}
+                  {Math.abs(Number(parent.remaining_value || 0)).toLocaleString(
+                    "pt-BR",
+                    {
+                      style: "currency",
+                      currency: "BRL",
+                    }
+                  )}
+                  .
+                </p>
+
+                {mainCause && (
+                  <p className="text-xs text-red-300">
+                    Principal causa: {mainCause.class_name} (
+                    {Math.abs(Number(mainCause.remaining_value || 0)).toLocaleString(
+                      "pt-BR",
+                      {
+                        style: "currency",
+                        currency: "BRL",
+                      }
+                    )}
+                    )
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {exceededIncomeBudgets.length > 0 && (
+        <section className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
+          <h2 className="font-semibold text-green-500">
+            Receita acima do previsto
+          </h2>
+
+          <div className="mt-2 space-y-1 text-sm">
+            {exceededIncomeBudgets.map((item) => (
+              <p key={item.id} className="text-green-400">
+                {item.type_name} superou o previsto em{" "}
+                {(Number(item.income_value || 0) - Number(item.planned_value || 0)).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+                .
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {filteredSuggestions.length > 0 && (
+        <section className="rounded-xl border p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Sugestões automáticas</h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredSuggestions.length} sugestão(ões) pela média dos últimos 3 meses.
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSuggestions((prev) => !prev)}
+            >
+              {showSuggestions ? "Ocultar" : "Ver"}
+            </Button>
+          </div>
+
+          {showSuggestions && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredSuggestions.slice(0, 6).map((item) => (
+                <div
+                  key={`${item.type_id}-${item.class_id}`}
+                  className="rounded-lg border p-3 space-y-3"
+                >
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {item.type_name} / {item.class_name}
+                    </div>
+
+                    <div className="mt-1 text-lg font-bold text-yellow-400">
+                      {Number(item.suggested_value || 0).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </div>
+
+                    <p className="hidden sm:block text-xs text-muted-foreground">
+                      Média dos últimos 3 meses
+                    </p>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="w-full bg-yellow-400 text-black hover:bg-yellow-500"
+                    onClick={() => useSuggestion(item)}
+                  >
+                    Usar sugestão
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      <section className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <BudgetFormDialog
           open={open}
           setOpen={setOpen}
@@ -238,6 +493,13 @@ export default function Budget() {
           isEditing={isEditing}
           onClose={resetForm}
           defaultBudgetMonth={budgetMonth}
+        />
+
+        <DuplicateBudgetDialog
+          currentMonth={selectedMonth}
+          currentYear={selectedYear}
+          disabled={summary.length === 0}
+          onDuplicate={duplicateBudget}
         />
       </section>
 

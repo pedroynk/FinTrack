@@ -37,10 +37,10 @@ import {
 import { Type, Nature, TypeCreateRequest, TypeUpdateRequest } from "@/types/finance";
 
 const ICON_OPTIONS = [
-  "wrench","utensils","activity","briefcase","dollar-sign","credit-card",
-  "shopping-bag","shopping-cart","heart","coffee","home","car","book","plane",
-  "gift","music","film","calendar","clock","globe","map-pin","umbrella","truck",
-  "bell","bar-chart-2","award","ticket","tv","cpu","dribbble"
+  "wrench", "utensils", "activity", "briefcase", "dollar-sign", "credit-card",
+  "shopping-bag", "shopping-cart", "heart", "coffee", "home", "car", "book", "plane",
+  "gift", "music", "film", "calendar", "clock", "globe", "map-pin", "umbrella", "truck",
+  "bell", "bar-chart-2", "award", "ticket", "tv", "cpu", "dribbble"
 ];
 
 function TypeManager({
@@ -116,7 +116,7 @@ function TypeManager({
 
       <CardContent>
         {/* New Type Form */}
-        <div className="flex flex-col md:flex-row flex-wrap items-center gap-4">
+        <div className="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-4">
           <Input
             value={newType.name || ""}
             onChange={(e) => setNewType({ ...newType, name: e.target.value })}
@@ -220,7 +220,7 @@ function TypeManager({
 
           <Button
             onClick={handleCreate}
-            className="w-full md:w-auto h-9 md:h-10 px-3 md:px-4 text-[clamp(0.75rem,2.6vw,0.875rem)] leading-none"
+            className="w-auto self-start flex-none"
           >
             Criar Tipo
           </Button>

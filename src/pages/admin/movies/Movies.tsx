@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search } from "lucide-react";
+
 import { deleteMovie, fetchMovies } from "@/api/movies";
 import { Movie } from "@/types/movies";
 import { MovieCard } from "./components/MovieCard";
 import { MovieSearchModal } from "./components/MovieSearchModal";
-import Pagination from "../finance/components/Pagination";
 import { MovieEditModal } from "./components/MovieEditModal";
+import Pagination from "../finance/components/Pagination";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Movies() {
@@ -23,7 +25,7 @@ export default function Movies() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const {toast} = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadMovies();
@@ -35,14 +37,16 @@ export default function Movies() {
     setTotalPages(Math.ceil(total / pageSize));
   }
 
-  const handleDeleteMovie = async (imdbId: string) => {
+  async function handleDeleteMovie(imdbId: string) {
     try {
       await deleteMovie(imdbId);
+
       toast({
         title: "Sucesso",
         description: "Filme excluído com sucesso!",
         duration: 2000,
       });
+
       await loadMovies();
     } catch (error) {
       toast({
@@ -52,71 +56,93 @@ export default function Movies() {
         duration: 2000,
       });
     }
-  };
-    
+  }
+
+  const filteredMovies = movies.filter((movie) =>
+    movie.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="p-6">
-<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  {/* Search */}
-  <div className="relative w-full sm:max-w-md">
-    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-    <Input
-      type="search"
-      placeholder="Buscar filmes..."
-      className="pl-9"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-    />
-  </div>
+    <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden">
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">Filmes</h1>
+          <p className="text-sm text-muted-foreground">
+            Organize seus filmes para assistir e os que já foram assistidos.
+          </p>
+        </div>
 
-  {/* Tabs */}
-  <Tabs
-    value={filter}
-    onValueChange={(val) => setFilter(val as "to_watch" | "watched")}
-    className="w-full sm:w-auto"
-  >
-    <TabsList className="grid w-full grid-cols-2 sm:w-auto">
-      <TabsTrigger value="to_watch">Para Assistir</TabsTrigger>
-      <TabsTrigger value="watched">Assistido</TabsTrigger>
-    </TabsList>
-  </Tabs>
+        <div className="w-full sm:w-auto">
+          <MovieSearchModal onMovieAdded={loadMovies} />
+        </div>
+      </section>
 
-  {/* Add */}
-  <div className="w-full sm:w-auto">
-    <MovieSearchModal onMovieAdded={loadMovies} />
-  </div>
-</div>
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar filmes..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
+        <Tabs
+          value={filter}
+          onValueChange={(val) => {
+            setFilter(val as "to_watch" | "watched");
+            setPage(1);
+          }}
+          className="w-full sm:w-auto"
+        >
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+            <TabsTrigger value="to_watch">Para Assistir</TabsTrigger>
+            <TabsTrigger value="watched">Assistidos</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </section>
 
-      {/* Movie Grid */}
-<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 lg:grid-cols-6">
-  {movies
-    .filter((movie) => movie.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .map((movie) => (
-      <MovieCard
-        key={movie.imdb_id}
-        movie={movie}
-        onClick={() => {
-          setSelectedMovie(movie);
-          setIsEditModalOpen(true);
-        }}
-        onDelete={handleDeleteMovie}
+      <section className="rounded-xl border p-4">
+        {filteredMovies.length ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 md:grid-cols-4 lg:grid-cols-6">
+            {filteredMovies.map((movie) => (
+              <MovieCard
+                key={movie.imdb_id}
+                movie={movie}
+                onClick={() => {
+                  setSelectedMovie(movie);
+                  setIsEditModalOpen(true);
+                }}
+                onDelete={handleDeleteMovie}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex min-h-[220px] items-center justify-center text-center text-sm text-muted-foreground">
+            Nenhum filme encontrado.
+          </div>
+        )}
+      </section>
+
+      {selectedMovie && (
+        <MovieEditModal
+          movie={selectedMovie}
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          onMovieUpdated={loadMovies}
+        />
+      )}
+
+      <Pagination
+        pageSizes={[6, 12, 36, 60]}
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        onSetPage={setPage}
+        onSetPageSize={setPageSize}
       />
-    ))}
-</div>
-
-
-    {selectedMovie && (
-      <MovieEditModal
-        movie={selectedMovie}
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        onMovieUpdated={loadMovies}
-      />
-    )}
-
-      {/* Pagination Controls */}
-      <Pagination pageSizes={[6, 12, 36, 60]} page={page} pageSize={pageSize} totalPages={totalPages} onSetPage={setPage} onSetPageSize={setPageSize} />
-    </div>
+    </main>
   );
 }
