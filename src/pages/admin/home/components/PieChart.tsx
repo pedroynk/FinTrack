@@ -27,6 +27,7 @@ interface DonutChartProps {
   title?: string;
   description?: string;
   data: DonutChartData[];
+  onSliceClick?: (type: string) => void;
 }
 
 const renderActiveShape = (isMobile: boolean) => (props: any) => {
@@ -145,6 +146,7 @@ export function DonutChart({
   title = "Percentual por Tipo",
   description = "Análise percentual por tipo de transação",
   data,
+  onSliceClick,
 }: DonutChartProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const { isMobile } = useSidebar();
@@ -213,6 +215,10 @@ export function DonutChart({
                 outerRadius={chartSize.outerRadius}
                 paddingAngle={2}
                 onMouseEnter={onPieEnter}
+                onClick={(_, index) => {
+                  const item = data[index];
+                  onSliceClick?.(item.type);
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
