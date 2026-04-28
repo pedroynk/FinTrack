@@ -110,7 +110,7 @@ export function DuplicateBudgetDialog({
                                     onChange={(event) =>
                                         setMode(event.target.value as DuplicateBudgetMode)
                                     }
-                                    className="accent-yellow-400"
+                                    className="accent-primary"
                                 />
                                 Duplicar só faltantes
                             </label>
@@ -124,7 +124,7 @@ export function DuplicateBudgetDialog({
                                     onChange={(event) =>
                                         setMode(event.target.value as DuplicateBudgetMode)
                                     }
-                                    className="accent-yellow-400"
+                                    className="accent-primary"
                                 />
                                 Duplicar e substituir
                             </label>
@@ -141,15 +141,16 @@ export function DuplicateBudgetDialog({
                                     className={`
     flex items-center gap-3 rounded-md border p-3 cursor-pointer transition
     ${selectedMonths.includes(month.value)
-                                            ? "border-yellow-400 bg-yellow-400/10"
-                                            : "hover:bg-muted/40"}
+                                            ? "border-primary bg-primary/10"
+                                            : "hover:bg-muted/40"
+                                        }
   `}
                                 >
                                     <input
                                         type="checkbox"
                                         checked={selectedMonths.includes(month.value)}
                                         onChange={() => toggleMonth(month.value)}
-                                        className="accent-yellow-400"
+                                        className="accent-primary"
                                     />
 
                                     <span className="text-sm font-medium">{month.label}</span>
