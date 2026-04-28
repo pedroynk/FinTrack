@@ -1,11 +1,19 @@
 export default function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
-      <div className="flex space-x-2">
-        <span className="h-5 w-5 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: "0s" }}></span>
-        <span className="h-5 w-5 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
-        <span className="h-5 w-5 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></span>
+    <div className="flex flex-col items-center justify-center h-screen bg-background gap-4">
+
+      <div className="relative">
+        <div className="w-10 h-10 border-2 border-primary/30 rounded-full" />
+        <div className="absolute inset-0 w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
+
+      <span className="text-lg font-semibold text-primary tracking-wide">
+        FinTrack
+      </span>
+
+      <p className="text-sm text-muted-foreground">
+        Carregando seus dados...
+      </p>
     </div>
   );
 }

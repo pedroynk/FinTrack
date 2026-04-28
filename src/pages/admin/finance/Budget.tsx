@@ -456,7 +456,7 @@ export default function Budget() {
                       {item.type_name} / {item.class_name}
                     </div>
 
-                    <div className="mt-1 text-lg font-bold text-yellow-400">
+                    <div className="mt-1 text-lg font-bold text-primary">
                       {Number(item.suggested_value || 0).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
@@ -470,7 +470,7 @@ export default function Budget() {
 
                   <Button
                     size="sm"
-                    className="w-full bg-yellow-400 text-black hover:bg-yellow-500"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={() => useSuggestion(item)}
                   >
                     Usar sugestão
