@@ -29,7 +29,7 @@ const data = {
   navMain: [
     {
       title: "Finanças",
-      color:"#FACC15",
+      color:"#8B5CF6",
       url: "#",
       icon: PiggyBank,
       isActive: true,
@@ -59,7 +59,7 @@ const data = {
     },
     {
       title: "Cinema",
-      color:"#FACC15",
+      color:"#8B5CF6",
       icon: Clapperboard,
       url: "#",
       isActive: true,

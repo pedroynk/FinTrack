@@ -6,7 +6,7 @@ interface ParticlesBackgroundProps {
   color?: string // Allow the color to be passed dynamically
 }
 
-export default function ParticlesBackground({ color = "#FACC15" }: ParticlesBackgroundProps) {
+export default function ParticlesBackground({ color = "#8B5CF6" }: ParticlesBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
