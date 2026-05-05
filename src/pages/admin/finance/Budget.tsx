@@ -29,7 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 function getEmptyBudget(): MonthlyBudgetCreateRequest {
@@ -53,6 +55,7 @@ export default function Budget() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<MonthlyBudgetSuggestion[]>([]);
   const [summary, setSummary] = useState<MonthlyBudgetSummary[]>([]);
+
   const filteredSuggestions = suggestions.filter((suggestion) => {
     return !summary.some(
       (budget) =>
@@ -61,7 +64,10 @@ export default function Budget() {
     );
   });
 
-  const budgetMonth = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+  const budgetMonth = `${selectedYear}-${String(selectedMonth).padStart(
+    2,
+    "0"
+  )}-01`;
 
   const [dimensions, setDimensions] = useState<Dimension[]>([]);
 
@@ -80,37 +86,39 @@ export default function Budget() {
 
   const [loading, setLoading] = useState(false);
 
+  const expenseBudgets = useMemo(() => {
+    return summary.filter((item) => item.nature_name === "Despesa");
+  }, [summary]);
+
+  const incomeBudgets = useMemo(() => {
+    return summary.filter((item) => item.nature_name === "Receita");
+  }, [summary]);
+
   const totals = useMemo(() => {
     const parentBudgets = summary.filter((item) => item.class_id === null);
 
-    const planned = parentBudgets.reduce(
-      (acc, item) => acc + Number(item.planned_value || 0),
-      0
-    );
+    const plannedExpense = parentBudgets
+      .filter((item) => item.nature_name === "Despesa")
+      .reduce((acc, item) => acc + Number(item.planned_value || 0), 0);
 
-    const expense = parentBudgets.reduce(
-      (acc, item) => acc + Number(item.expense_value || 0),
-      0
-    );
+    const plannedIncome = parentBudgets
+      .filter((item) => item.nature_name === "Receita")
+      .reduce((acc, item) => acc + Number(item.planned_value || 0), 0);
 
-    const income = parentBudgets.reduce(
-      (acc, item) => acc + Number(item.income_value || 0),
-      0
-    );
+    const expense = parentBudgets
+      .filter((item) => item.nature_name === "Despesa")
+      .reduce((acc, item) => acc + Number(item.expense_value || 0), 0);
 
-    const spent = expense;
-    const remaining = planned - expense;
-
-    const percentage =
-      planned > 0 ? Number(((expense / planned) * 100).toFixed(2)) : 0;
+    const income = parentBudgets
+      .filter((item) => item.nature_name === "Receita")
+      .reduce((acc, item) => acc + Number(item.income_value || 0), 0);
 
     return {
-      planned,
-      spent,
+      plannedExpense,
+      plannedIncome,
       expense,
       income,
-      remaining,
-      percentage,
+      remainingExpenseBudget: plannedExpense - expense,
     };
   }, [summary]);
 
@@ -155,6 +163,25 @@ export default function Budget() {
     );
   }, [summary]);
 
+  const projectedExpense = useMemo(() => {
+    const today = new Date();
+
+    const isCurrentMonth =
+      selectedMonth === today.getMonth() + 1 &&
+      selectedYear === today.getFullYear();
+
+    if (!isCurrentMonth) {
+      return totals.expense;
+    }
+
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+    if (dayOfMonth <= 0) return totals.expense;
+
+    return Number(((totals.expense / dayOfMonth) * daysInMonth).toFixed(2));
+  }, [totals.expense, selectedMonth, selectedYear]);
+
   async function duplicateBudget(
     months: string[],
     mode: "missing_only" | "replace"
@@ -195,25 +222,6 @@ export default function Budget() {
     }
   }
 
-  const projectedExpense = useMemo(() => {
-    const today = new Date();
-
-    const isCurrentMonth =
-      selectedMonth === today.getMonth() + 1 &&
-      selectedYear === today.getFullYear();
-
-    if (!isCurrentMonth) {
-      return totals.expense;
-    }
-
-    const dayOfMonth = today.getDate();
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-
-    if (dayOfMonth <= 0) return totals.expense;
-
-    return Number(((totals.expense / dayOfMonth) * daysInMonth).toFixed(2));
-  }, [totals.expense, selectedMonth, selectedYear]);
-
   async function loadBudgetData() {
     setLoading(true);
 
@@ -244,7 +252,6 @@ export default function Budget() {
     setIsEditing(false);
     setEditingBudgetId(null);
   }
-
 
   async function saveBudget() {
     const payload = {
@@ -302,7 +309,9 @@ export default function Budget() {
     <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 overflow-x-hidden">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Orçamento mensal</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Orçamento mensal
+          </h1>
           <p className="text-sm text-muted-foreground">
             Acompanhe o planejado, gasto e restante por categoria.
           </p>
@@ -358,7 +367,8 @@ export default function Budget() {
       </section>
 
       <BudgetSummary
-        planned={totals.planned}
+        plannedExpense={totals.plannedExpense}
+        plannedIncome={totals.plannedIncome}
         expense={totals.expense}
         income={totals.income}
         projectedExpense={projectedExpense}
@@ -388,13 +398,12 @@ export default function Budget() {
                 {mainCause && (
                   <p className="text-xs text-red-300">
                     Principal causa: {mainCause.class_name} (
-                    {Math.abs(Number(mainCause.remaining_value || 0)).toLocaleString(
-                      "pt-BR",
-                      {
-                        style: "currency",
-                        currency: "BRL",
-                      }
-                    )}
+                    {Math.abs(
+                      Number(mainCause.remaining_value || 0)
+                    ).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
                     )
                   </p>
                 )}
@@ -414,7 +423,10 @@ export default function Budget() {
             {exceededIncomeBudgets.map((item) => (
               <p key={item.id} className="text-green-400">
                 {item.type_name} superou o previsto em{" "}
-                {(Number(item.income_value || 0) - Number(item.planned_value || 0)).toLocaleString("pt-BR", {
+                {(
+                  Number(item.income_value || 0) -
+                  Number(item.planned_value || 0)
+                ).toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
                 })}
@@ -431,7 +443,8 @@ export default function Budget() {
             <div>
               <h2 className="font-semibold">Sugestões automáticas</h2>
               <p className="text-sm text-muted-foreground">
-                {filteredSuggestions.length} sugestão(ões) pela média dos últimos 3 meses.
+                {filteredSuggestions.length} sugestão(ões) pela média dos
+                últimos 3 meses.
               </p>
             </div>
 
@@ -457,10 +470,13 @@ export default function Budget() {
                     </div>
 
                     <div className="mt-1 text-lg font-bold text-primary">
-                      {Number(item.suggested_value || 0).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
+                      {Number(item.suggested_value || 0).toLocaleString(
+                        "pt-BR",
+                        {
+                          style: "currency",
+                          currency: "BRL",
+                        }
+                      )}
                     </div>
 
                     <p className="hidden sm:block text-xs text-muted-foreground">
@@ -503,19 +519,48 @@ export default function Budget() {
         />
       </section>
 
-      <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
-        <BudgetTable
-          budgets={summary}
-          loading={loading}
-          confirmOpen={confirmOpen}
-          setConfirmOpen={setConfirmOpen}
-          selectedBudget={selectedBudget}
-          setSelectedBudget={setSelectedBudget}
-          deleteBudget={deleteBudget}
-          deleteLoading={deleteLoading}
-          handleEdit={handleEdit}
-        />
-      </section>
+      <Tabs defaultValue="despesa" className="w-full">
+        <TabsList>
+          <TabsTrigger value="despesa">
+            Despesas
+          </TabsTrigger>
+          <TabsTrigger value="receita">
+            Receitas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="despesa" className="mt-4">
+          <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
+            <BudgetTable
+              budgets={expenseBudgets}
+              loading={loading}
+              confirmOpen={confirmOpen}
+              setConfirmOpen={setConfirmOpen}
+              selectedBudget={selectedBudget}
+              setSelectedBudget={setSelectedBudget}
+              deleteBudget={deleteBudget}
+              deleteLoading={deleteLoading}
+              handleEdit={handleEdit}
+            />
+          </section>
+        </TabsContent>
+
+        <TabsContent value="receita" className="mt-4">
+          <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
+            <BudgetTable
+              budgets={incomeBudgets}
+              loading={loading}
+              confirmOpen={confirmOpen}
+              setConfirmOpen={setConfirmOpen}
+              selectedBudget={selectedBudget}
+              setSelectedBudget={setSelectedBudget}
+              deleteBudget={deleteBudget}
+              deleteLoading={deleteLoading}
+              handleEdit={handleEdit}
+            />
+          </section>
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

@@ -1,7 +1,8 @@
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
 interface BudgetSummaryProps {
-  planned: number;
+  plannedExpense: number;
+  plannedIncome: number;
   expense: number;
   income: number;
   projectedExpense: number;
@@ -14,60 +15,76 @@ const formatValue = (value: number) =>
   })}`;
 
 export function BudgetSummary({
-  planned,
+  plannedExpense,
+  plannedIncome,
   expense,
   income,
   projectedExpense,
 }: BudgetSummaryProps) {
   const net = income - expense;
 
+  const safeProjectedExpense = Math.max(expense, projectedExpense);
+
   const expensePercentage =
-    planned > 0 ? Number(((expense / planned) * 100).toFixed(1)) : 0;
+    plannedExpense > 0
+      ? Number(((expense / plannedExpense) * 100).toFixed(1))
+      : 0;
 
-  const projectedPercentage =
-    planned > 0 ? Number(((projectedExpense / planned) * 100).toFixed(1)) : 0;
+  const incomePercentage =
+    plannedIncome > 0
+      ? Number(((income / plannedIncome) * 100).toFixed(1))
+      : 0;
 
-  const expenseColor = expense > planned ? "text-red-500" : "text-yellow-300";
+  const availableToSpend = plannedExpense - expense;
+  const projectedResult = plannedIncome - safeProjectedExpense;
+
+  const expenseColor =
+    expense > plannedExpense ? "text-red-500" : "text-yellow-400";
+
   const resultColor = net >= 0 ? "text-green-500" : "text-red-500";
 
   const projectionColor =
-    projectedExpense > planned ? "text-red-500" : "text-muted-foreground";
+    safeProjectedExpense > plannedExpense
+      ? "text-red-500"
+      : "text-muted-foreground";
 
   const data = [
-    {
-      title: "Orçado",
-      value: planned,
-      color: "text-yellow-300",
-      borderColor: "border-yellow-300",
-      detail: "Limite planejado para o mês",
-    },
-    {
-      title: "Gasto",
-      value: expense,
-      color: expenseColor,
-      borderColor: expense > planned ? "border-red-500" : "border-yellow-300",
-      detail: `${expensePercentage}% usado`,
-      extra: `Previsão: ${formatValue(projectedExpense)} · ${projectedPercentage}%`,
-      extraColor: projectionColor,
-    },
-    {
-      title: "Receita",
-      value: income,
-      color: "text-green-500",
-      borderColor: "border-green-500",
-      detail: "Recebido no mês",
-    },
     {
       title: "Resultado",
       value: net,
       color: resultColor,
       borderColor: net >= 0 ? "border-green-500" : "border-red-500",
-      detail: income >= expense ? "Saldo positivo" : "Saldo negativo",
+      detail: net >= 0 ? "Saldo positivo" : "Saldo negativo",
+      extra: `Livre: ${formatValue(
+        availableToSpend
+      )} · Previsto: ${formatValue(projectedResult)}`,
+      extraColor: projectedResult >= 0 ? "text-green-500" : "text-red-500",
+    },
+    {
+      title: "Gasto",
+      value: expense,
+      color: expenseColor,
+      borderColor:
+        expense > plannedExpense ? "border-red-500" : "border-yellow-400",
+      detail: `${expensePercentage}% do orçamento`,
+      extra: `Orçado: ${formatValue(
+        plannedExpense
+      )} `,
+      extraColor: projectionColor,
+    },
+    {
+      title: "Receita",
+      value: income,
+      color: "text-blue-500",
+      borderColor: "border-blue-500",
+      detail: `${incomePercentage}% recebido`,
+      extra: `Orçado: ${formatValue(plannedIncome)}`,
+      extraColor: "text-muted-foreground",
     },
   ];
 
   return (
-    <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-4">
+    <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-3">
       {data.map((card) => (
         <Card key={card.title} className="p-6 rounded-lg shadow-md">
           <CardHeader>

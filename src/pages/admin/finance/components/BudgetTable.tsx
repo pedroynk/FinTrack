@@ -61,8 +61,75 @@ function getRemainingLabel(budget?: MonthlyBudgetSummary | null) {
   return budget?.nature_name === "Receita" ? "A receber" : "Restante";
 }
 
+function getRemainingClass(budget?: MonthlyBudgetSummary | null) {
+  if (!budget) return "text-muted-foreground";
+
+  const remaining = Number(budget.remaining_value || 0);
+  const planned = Number(budget.planned_value || 0);
+
+  if (budget.nature_name === "Receita") {
+    if (remaining <= 0) return "text-green-500";
+    if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
+    return "text-red-500";
+  }
+
+  if (remaining < 0) return "text-red-500";
+  if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
+  return "text-green-500";
+}
+
+function getStatusFromPercentage(value: number, natureName?: string) {
+  if (natureName === "Receita") {
+    if (value >= 100) return "OK";
+    if (value >= 70) return "QUASE";
+    return "ATENCAO";
+  }
+
+  if (value > 100) return "ESTOUROU";
+  if (value >= 90) return "CRITICO";
+  if (value >= 70) return "ATENCAO";
+  return "OK";
+}
+
+function createGroupSummary(
+  typeName: string,
+  items: MonthlyBudgetSummary[]
+): MonthlyBudgetSummary {
+  const first = items[0];
+
+  const planned = items.reduce(
+    (sum, item) => sum + Number(item.planned_value || 0),
+    0
+  );
+
+  const realized = items.reduce(
+    (sum, item) => sum + getRealizedValue(item),
+    0
+  );
+
+  const remaining =
+    first?.nature_name === "Receita" ? planned - realized : planned - realized;
+
+  const percentage = planned > 0 ? (realized / planned) * 100 : 0;
+
+  return {
+    ...first,
+    id: first?.id ?? typeName,
+    type_name: typeName,
+    class_id: null,
+    class_name: null,
+    planned_value: planned,
+    income_value: first?.nature_name === "Receita" ? realized : 0,
+    expense_value: first?.nature_name === "Receita" ? 0 : realized,
+    spent_value: first?.nature_name === "Receita" ? 0 : realized,
+    remaining_value: remaining,
+    percentage_used: percentage,
+    status: getStatusFromPercentage(percentage, first?.nature_name),
+  } as MonthlyBudgetSummary;
+}
+
 function ProgressBar({ value, status }: { value: number; status: string }) {
-  const normalized = Math.min(Number(value || 0), 100);
+  const normalized = Math.min(Math.max(Number(value || 0), 0), 100);
 
   const colorMap: Record<string, string> = {
     OK: "bg-green-500",
@@ -77,7 +144,9 @@ function ProgressBar({ value, status }: { value: number; status: string }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <div
-        className={`h-full transition-all ${colorMap[status] ?? "bg-blue-500"}`}
+        className={`h-full rounded-full transition-all ${
+          colorMap[status] ?? "bg-blue-500"
+        }`}
         style={{ width: `${normalized}%` }}
       />
     </div>
@@ -108,23 +177,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function getRemainingClass(budget?: MonthlyBudgetSummary | null) {
-  if (!budget) return "text-muted-foreground";
-
-  const remaining = Number(budget.remaining_value || 0);
-  const planned = Number(budget.planned_value || 0);
-
-  if (budget.nature_name === "Receita") {
-    if (remaining <= 0) return "text-green-500";
-    if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
-    return "text-red-500";
-  }
-
-  if (remaining < 0) return "text-red-500";
-  if (planned > 0 && remaining <= planned * 0.3) return "text-yellow-500";
-  return "text-green-500";
-}
-
 function BudgetActions({
   budget,
   confirmOpen,
@@ -146,7 +198,12 @@ function BudgetActions({
 }) {
   return (
     <div className="flex justify-end gap-2">
-      <Button variant="outline" size="icon" onClick={() => handleEdit(budget)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => handleEdit(budget)}
+      >
         <Pen className="h-4 w-4 text-blue-500" />
       </Button>
 
@@ -159,8 +216,9 @@ function BudgetActions({
       >
         <AlertDialogTrigger asChild>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
+            className="h-8 w-8"
             onClick={() => {
               setSelectedBudget(budget);
               setConfirmOpen(true);
@@ -172,7 +230,7 @@ function BudgetActions({
 
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogTitle>Remover orçamento?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. Deseja remover este orçamento?
             </AlertDialogDescription>
@@ -204,6 +262,24 @@ function BudgetActions({
   );
 }
 
+function BudgetValueCell({
+  value,
+  label,
+  className = "",
+}: {
+  budget: MonthlyBudgetSummary;
+  value: number;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col ${className}`}>
+      <span>{formatCurrency(value)}</span>
+      <span className="text-xs font-normal text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 export function BudgetTable({
   budgets,
   loading = false,
@@ -225,189 +301,225 @@ export function BudgetTable({
     {}
   );
 
+  const orderedGroups = Object.entries(groupedBudgets).sort(
+    ([typeA], [typeB]) => {
+      const order = ["Receita", "Despesa", "Despesas"];
+      const indexA = order.indexOf(typeA);
+      const indexB = order.indexOf(typeB);
+
+      if (indexA === -1 && indexB === -1) return typeA.localeCompare(typeB);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+
+      return indexA - indexB;
+    }
+  );
+
   return (
-    <div className="w-full overflow-x-auto rounded-xl border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="min-w-[220px]">Categoria</TableHead>
-            <TableHead className="text-right">Orçado</TableHead>
-            <TableHead className="text-right">Realizado</TableHead>
-            <TableHead className="text-right">Saldo</TableHead>
-            <TableHead className="min-w-[160px]">Uso</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                Carregando orçamento...
-              </TableCell>
+    <div className="w-full overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="w-full overflow-x-auto">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-card">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="min-w-[240px]">Categoria</TableHead>
+              <TableHead className="text-right">Orçado</TableHead>
+              <TableHead className="text-right">Realizado</TableHead>
+              <TableHead className="text-right">Saldo</TableHead>
+              <TableHead className="min-w-[180px]">Uso</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          ) : budgets.length ? (
-            Object.entries(groupedBudgets).map(([typeName, items]) => {
-              const parent = items.find((b) => b.class_id === null);
-              const children = items.filter((b) => b.class_id !== null);
+          </TableHeader>
 
-              return (
-                <Fragment key={typeName}>
-                  <TableRow className="bg-muted/30 font-semibold hover:bg-muted/30">
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold">{typeName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {children.length} classe(s)
-                        </span>
-                      </div>
-                    </TableCell>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Carregando orçamento...
+                </TableCell>
+              </TableRow>
+            ) : budgets.length ? (
+              orderedGroups.map(([typeName, items]) => {
+                const parent =
+                  items.find((budget) => budget.class_id === null) ??
+                  createGroupSummary(typeName, items);
 
-                    <TableCell className="text-right">
-                      {formatCurrency(parent?.planned_value ?? 0)}
-                    </TableCell>
+                const children = items.filter(
+                  (budget) => budget.class_id !== null
+                );
 
-                    <TableCell className="text-right">
-                      <div className="flex flex-col">
-                        <span>{formatCurrency(getRealizedValue(parent))}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {getRealizedLabel(parent)}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className={`text-right font-semibold ${getRemainingClass(parent)}`}>
-                      <div className="flex flex-col">
-                        <span>{formatCurrency(parent?.remaining_value ?? 0)}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {getRemainingLabel(parent)}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-medium">
-                            {Number(parent?.percentage_used || 0).toFixed(0)}%
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {parent?.nature_name === "Receita" ? "recebido" : "usado"}
-                          </span>
-                        </div>
-
-                        <ProgressBar
-                          value={Number(parent?.percentage_used || 0)}
-                          status={parent?.status ?? "OK"}
-                        />
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <StatusBadge status={parent?.status ?? "OK"} />
-                    </TableCell>
-
-                    <TableCell>
-                      {parent && (
-                        <BudgetActions
-                          budget={parent}
-                          confirmOpen={confirmOpen}
-                          setConfirmOpen={setConfirmOpen}
-                          selectedBudget={selectedBudget}
-                          setSelectedBudget={setSelectedBudget}
-                          deleteBudget={deleteBudget}
-                          deleteLoading={deleteLoading}
-                          handleEdit={handleEdit}
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-
-                  {children.map((budget) => (
-                    <TableRow
-                      key={budget.id}
-                      className="transition-colors hover:bg-muted/40"
-                    >
+                return (
+                  <Fragment key={typeName}>
+                    <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
                       <TableCell>
-                        <div className="flex items-center gap-3 pl-6">
-                          <div className="h-8 w-0.5 rounded-full bg-muted-foreground/30" />
-                          <span className="font-semibold">
-                            {budget.class_name ?? "Sem classe"}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold">{typeName}</span>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            {children.length} classe(s)
                           </span>
                         </div>
-                      </TableCell>
-
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(budget.planned_value)}
                       </TableCell>
 
                       <TableCell className="text-right">
-                        <div className="flex flex-col">
-                          <span>{formatCurrency(getRealizedValue(budget))}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {getRealizedLabel(budget)}
-                          </span>
-                        </div>
+                        {formatCurrency(parent.planned_value)}
                       </TableCell>
 
-                      <TableCell className={`text-right font-semibold ${getRemainingClass(budget)}`}>
-                        <div className="flex flex-col">
-                          <span>{formatCurrency(budget.remaining_value)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {getRemainingLabel(budget)}
-                          </span>
-                        </div>
+                      <TableCell className="text-right">
+                        <BudgetValueCell
+                          budget={parent}
+                          value={getRealizedValue(parent)}
+                          label={getRealizedLabel(parent)}
+                        />
+                      </TableCell>
+
+                      <TableCell
+                        className={`text-right font-semibold ${getRemainingClass(
+                          parent
+                        )}`}
+                      >
+                        <BudgetValueCell
+                          budget={parent}
+                          value={Number(parent.remaining_value || 0)}
+                          label={getRemainingLabel(parent)}
+                        />
                       </TableCell>
 
                       <TableCell>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-sm font-medium">
-                              {Number(budget.percentage_used || 0).toFixed(0)}%
+                              {Number(parent.percentage_used || 0).toFixed(0)}%
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {budget.nature_name === "Receita" ? "recebido" : "usado"}
+                              {parent.nature_name === "Receita"
+                                ? "recebido"
+                                : "usado"}
                             </span>
                           </div>
 
                           <ProgressBar
-                            value={Number(budget.percentage_used || 0)}
-                            status={budget.status}
+                            value={Number(parent.percentage_used || 0)}
+                            status={parent.status ?? "OK"}
                           />
                         </div>
                       </TableCell>
 
                       <TableCell>
-                        <StatusBadge status={budget.status} />
+                        <StatusBadge status={parent.status ?? "OK"} />
                       </TableCell>
 
                       <TableCell>
-                        <BudgetActions
-                          budget={budget}
-                          confirmOpen={confirmOpen}
-                          setConfirmOpen={setConfirmOpen}
-                          selectedBudget={selectedBudget}
-                          setSelectedBudget={setSelectedBudget}
-                          deleteBudget={deleteBudget}
-                          deleteLoading={deleteLoading}
-                          handleEdit={handleEdit}
-                        />
+                        {items.some((budget) => budget.class_id === null) && (
+                          <BudgetActions
+                            budget={parent}
+                            confirmOpen={confirmOpen}
+                            setConfirmOpen={setConfirmOpen}
+                            selectedBudget={selectedBudget}
+                            setSelectedBudget={setSelectedBudget}
+                            deleteBudget={deleteBudget}
+                            deleteLoading={deleteLoading}
+                            handleEdit={handleEdit}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </Fragment>
-              );
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                Nenhum orçamento encontrado para este mês.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+
+                    {children.map((budget) => (
+                      <TableRow
+                        key={budget.id}
+                        className="transition-colors odd:bg-muted/10 hover:bg-muted/40"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3 pl-6">
+                            <div className="h-8 w-0.5 rounded-full bg-muted-foreground/30" />
+                            <span className="font-medium">
+                              {budget.class_name ?? "Sem classe"}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(budget.planned_value)}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <BudgetValueCell
+                            budget={budget}
+                            value={getRealizedValue(budget)}
+                            label={getRealizedLabel(budget)}
+                          />
+                        </TableCell>
+
+                        <TableCell
+                          className={`text-right font-semibold ${getRemainingClass(
+                            budget
+                          )}`}
+                        >
+                          <BudgetValueCell
+                            budget={budget}
+                            value={Number(budget.remaining_value || 0)}
+                            label={getRemainingLabel(budget)}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium">
+                                {Number(budget.percentage_used || 0).toFixed(0)}
+                                %
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {budget.nature_name === "Receita"
+                                  ? "recebido"
+                                  : "usado"}
+                              </span>
+                            </div>
+
+                            <ProgressBar
+                              value={Number(budget.percentage_used || 0)}
+                              status={budget.status}
+                            />
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <StatusBadge status={budget.status} />
+                        </TableCell>
+
+                        <TableCell>
+                          <BudgetActions
+                            budget={budget}
+                            confirmOpen={confirmOpen}
+                            setConfirmOpen={setConfirmOpen}
+                            selectedBudget={selectedBudget}
+                            setSelectedBudget={setSelectedBudget}
+                            deleteBudget={deleteBudget}
+                            deleteLoading={deleteLoading}
+                            handleEdit={handleEdit}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Nenhum orçamento encontrado para este mês.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
