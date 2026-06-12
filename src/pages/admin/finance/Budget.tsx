@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   fetchMonthlyBudgetSummary,
@@ -190,12 +190,12 @@ export default function Budget() {
     await loadBudgetData();
   }
 
-  async function loadSuggestions() {
+  const loadSuggestions = useCallback(async () => {
     const data = await fetchMonthlyBudgetSuggestions(budgetMonth);
     setSuggestions(data);
-  }
+  }, [budgetMonth]);
 
-  async function useSuggestion(item: MonthlyBudgetSuggestion) {
+  async function applySuggestion(item: MonthlyBudgetSuggestion) {
     try {
       await createMonthlyBudgetApi({
         type_id: item.type_id,
@@ -222,7 +222,7 @@ export default function Budget() {
     }
   }
 
-  async function loadBudgetData() {
+  const loadBudgetData = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -231,7 +231,7 @@ export default function Budget() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [budgetMonth]);
 
   async function loadDimensions() {
     const data = await fetchDimensions();
@@ -241,7 +241,7 @@ export default function Budget() {
   useEffect(() => {
     loadBudgetData();
     loadSuggestions();
-  }, [budgetMonth]);
+  }, [loadBudgetData, loadSuggestions]);
 
   useEffect(() => {
     loadDimensions();
@@ -487,7 +487,7 @@ export default function Budget() {
                   <Button
                     size="sm"
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => useSuggestion(item)}
+                    onClick={() => applySuggestion(item)}
                   >
                     Usar sugestão
                   </Button>

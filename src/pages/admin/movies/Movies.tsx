@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -27,15 +27,15 @@ export default function Movies() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadMovies();
-  }, [filter, page, pageSize]);
-
-  async function loadMovies() {
+  const loadMovies = useCallback(async () => {
     const { data, total } = await fetchMovies(filter, page, pageSize);
     setMovies(data);
     setTotalPages(Math.ceil(total / pageSize));
-  }
+  }, [filter, page, pageSize]);
+
+  useEffect(() => {
+    loadMovies();
+  }, [loadMovies]);
 
   async function handleDeleteMovie(imdbId: string) {
     try {

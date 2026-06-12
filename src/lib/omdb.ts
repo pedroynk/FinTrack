@@ -3,11 +3,35 @@ import { Movie, MovieStatus } from "@/types/movies";
 const API_URL = "https://www.omdbapi.com/";
 const API_KEY = import.meta.env.VITE_OMDB_API_KEY;
 
+interface OmdbSearchResult {
+  imdbID: string;
+  Title: string;
+  Year: string;
+  Poster: string;
+  Type: "movie" | "series";
+}
+
+interface OmdbSearchResponse {
+  Search?: OmdbSearchResult[];
+  Response: "True" | "False";
+  Error?: string;
+}
+
+interface OmdbMovieResponse extends OmdbSearchResult {
+  Genre?: string;
+  Director?: string;
+  Actors?: string;
+  Plot?: string;
+  imdbRating?: string;
+}
+
 // Fetch movie by IMDb ID
 export async function fetchMovieByImdbId(imdbId: string): Promise<Movie | null> {
   try {
     const res = await fetch(`${API_URL}?i=${imdbId}&apikey=${API_KEY}`);
-    const movie = await res.json();
+    const movie = (await res.json()) as OmdbMovieResponse & {
+      Response?: "True" | "False";
+    };
 
     if (movie.Response === "False") return null;
 
@@ -21,12 +45,14 @@ export async function fetchMovieByImdbId(imdbId: string): Promise<Movie | null> 
 // Search movies by title
 export async function searchMovies(query: string): Promise<Movie[]> {
   try {
-    const res = await fetch(`${API_URL}?s=${query}&apikey=${API_KEY}`);
-    const searchResults = await res.json();
+    const res = await fetch(
+      `${API_URL}?s=${encodeURIComponent(query)}&apikey=${API_KEY}`
+    );
+    const searchResults = (await res.json()) as OmdbSearchResponse;
 
     if (!searchResults.Search) return [];
 
-    return searchResults.Search.map((result: any) => ({
+    return searchResults.Search.map((result) => ({
       imdb_id: result.imdbID,
       title: result.Title,
       year: parseInt(result.Year, 10),
@@ -48,7 +74,11 @@ export async function searchMovies(query: string): Promise<Movie[]> {
 }
 
 // Format API response to match Movie type
-function formatMovie(movie: any): Movie {
+function formatMovie(movie: OmdbMovieResponse): Movie {
+  const actors = movie.Actors && movie.Actors !== "N/A"
+    ? movie.Actors.split(", ")
+    : [];
+
   return {
     imdb_id: movie.imdbID,
     title: movie.Title,
@@ -56,11 +86,13 @@ function formatMovie(movie: any): Movie {
     poster: movie.Poster !== "N/A" ? movie.Poster : null,
     genre: movie.Genre ? movie.Genre.split(", ").filter(Boolean) : [],
     director: movie.Director !== "N/A" ? movie.Director : null,
-    actors: movie.Actors !== "N/A" ? movie.Actors.split(", ") : [],
+    actors,
     plot: movie.Plot !== "N/A" ? movie.Plot : null,
     type: movie.Type as "movie" | "series",
     rating: null,
-    score_imdb: movie.imdbRating !== "N/A" ? parseFloat(movie.imdbRating) : null,
+    score_imdb: movie.imdbRating && movie.imdbRating !== "N/A"
+      ? parseFloat(movie.imdbRating)
+      : null,
     status: MovieStatus.TO_WATCH,
     watched_dates: [],
   };

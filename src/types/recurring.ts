@@ -1,14 +1,3 @@
-export interface Recurring {
-  id: number;
-  class: Class;
-  value: number;
-  description: string;
-  frequency: string;
-  validity: string | null;
-  status: boolean;
-  paid_parcels: JSON;
-}
-
 export interface Nature {
   id: number;
   name: string;
@@ -28,12 +17,24 @@ export interface Class {
   type: Type;
 }
 
-export interface Transaction {
-  id: number;
+export interface Installment {
+  label: string;
+  number: number;
+}
+
+export type Installments = Installment[] | string;
+
+export interface Recurring {
+  id: string;
+  class: Class;
   value: number;
   description: string;
-  transaction_at: string;
-  class: Class;
+  frequency: string;
+  validity: string | null;
+  status: boolean;
+  created_at: string;
+  paid_parcels: number[];
+  installments?: Installments;
 }
 
 // QueryTypes
@@ -50,16 +51,7 @@ export interface RecurringCreateRequest {
 }
 
 export interface RecurringUpdateRequest extends Partial<RecurringCreateRequest> {
-  id: number;
-}
-
-// Transaction
-
-export interface TransactionCreateRequest {
-  value: number
-  class_id: number;
-  description: string;
-  transaction_at: string;
+  id: string;
 }
 
 export interface Dimension {

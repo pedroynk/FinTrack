@@ -3,32 +3,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DynamicIcon, IconName } from "lucide-react/dynamic";
-import { deleteRecurringApi, softDeleteRecurring, toggleParcelPayment } from "@/api/recurring";
-import { useState } from "react";
-import { Recurring } from "@/types/recurring";
-
-interface Installment {
-  label: string;
-}
+import { deleteRecurringApi, softDeleteRecurring, updateRecurringParcelPayment } from "@/api/recurring";
+import { Fragment, useState } from "react";
+import { Installment, Recurring } from "@/types/recurring";
 
 interface RecurringTableProps {
-  recurring: any[];
-  setRecurring: React.Dispatch<React.SetStateAction<any[]>>;
+  recurring: Recurring[];
   confirmOpen: boolean;
   setConfirmOpen: (open: boolean) => void;
   confirmOpenSoft: boolean;
   setConfirmOpenSoft: (open: boolean) => void;
   confirmPaymentOpen: boolean;
   setConfirmPaymentOpen: (open: boolean) => void;
-  selectedRecurring: any | null;
-  setSelectedRecurring: (rec: any | null) => void;
+  selectedRecurring: Recurring | null;
+  setSelectedRecurring: (rec: Recurring | null) => void;
   selectedParcel: { transactionId: string; installmentNumber: number } | null;
   setSelectedParcel: (parcel: { transactionId: string; installmentNumber: number } | null) => void;
   reloadRecurring: () => Promise<void>;
   handleEditRecurring: (recurring: Recurring) => void;
 }
 
-function getIcon(recurring: any) {
+function getIcon(recurring: Recurring) {
   if (recurring.class?.type?.lucide_icon) {
     return (
       <DynamicIcon
@@ -41,7 +36,6 @@ function getIcon(recurring: any) {
 
 export function RecurringTable({
   recurring,
-  setRecurring,
   confirmOpen,
   setConfirmOpen,
   confirmOpenSoft,
@@ -58,7 +52,7 @@ export function RecurringTable({
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [paymentAction, setPaymentAction] = useState<"mark" | "unmark" | null>(null);
 
-  function getRemainingInfo(recurring: any) {
+  function getRemainingInfo(recurring: Recurring) {
     const paidParcels: number[] = recurring.paid_parcels || [];
 
     if (!Array.isArray(recurring.installments) || !recurring.value) {
@@ -106,11 +100,11 @@ export function RecurringTable({
           {recurring.map((recurring) => {
             const paidParcels = recurring.paid_parcels || [];
             const remainingInfo = getRemainingInfo(recurring);
-
+            const installments = recurring.installments;
 
             return (
-              <>
-                <TableRow key={recurring.id}>
+              <Fragment key={recurring.id}>
+                <TableRow>
                   <TableCell>{getIcon(recurring)}</TableCell>
                   <TableCell>{recurring.class?.type?.name || "Sem Tipo"}</TableCell>
                   <TableCell>{recurring.class?.name || "Sem Classe"}</TableCell>
@@ -212,10 +206,10 @@ export function RecurringTable({
                       <div className="w-full">
                         <h3 className="font-semibold">Parcelas</h3>
                         <div>
-                          {typeof recurring.installments === "string" ? (
-                            <p>{recurring.installments}</p>
-                          ) : (
-                            recurring.installments.map((installment: Installment, index: number) => {
+                          {typeof installments === "string" ? (
+                            <p>{installments}</p>
+                          ) : Array.isArray(installments) ? (
+                            installments.map((installment: Installment, index: number) => {
                               const installmentNumber = index + 1;
                               const isPaid = paidParcels.includes(installmentNumber);
 
@@ -248,13 +242,15 @@ export function RecurringTable({
                                 </div>
                               );
                             })
+                          ) : (
+                            <p>Sem parcelas calculadas.</p>
                           )}
                         </div>
                       </div>
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>
@@ -274,14 +270,19 @@ export function RecurringTable({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (selectedParcel) {
-                  toggleParcelPayment(
-                    selectedParcel.transactionId,
-                    selectedParcel.installmentNumber,
-                    recurring.find(t => t.id === selectedParcel.transactionId)?.paid_parcels || [],
-                    setRecurring
-                  );
+                  try {
+                    await updateRecurringParcelPayment(
+                      selectedParcel.transactionId,
+                      selectedParcel.installmentNumber,
+                      recurring.find((transaction) => transaction.id === selectedParcel.transactionId)
+                        ?.paid_parcels || []
+                    );
+                    await reloadRecurring();
+                  } catch (error) {
+                    console.error("Erro ao atualizar pagamento da parcela:", error);
+                  }
                 }
                 setConfirmPaymentOpen(false);
               }}

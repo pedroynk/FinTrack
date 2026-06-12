@@ -10,6 +10,8 @@ export function normalizeAvatarUrl(url?: string): string | undefined {
         return url.replace(/=s\d+-c$/, "=s48-c");
       }
     }
-  } catch {}
+  } catch {
+    return url;
+  }
   return url;
 }

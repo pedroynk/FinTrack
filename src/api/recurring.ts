@@ -1,47 +1,29 @@
 import { supabase } from "@/lib/supabase";
-import { RecurringCreateRequest, Type } from "@/types/recurring";
-
-
-export interface RecurringTransaction {
-  id: string;
-  value: number;
-  description: string;
-  frequency: string;
-  validity: string | null;
-  created_at: string;
-  paid_parcels: number[];
-  class: {
-    id: string;
-    name: string;
-    type: {
-      name: string;
-      hex_color: string;
-      lucide_icon: string;
-      nature?: {
-        name: string;
-      };
-    };
-  };
-}
-
+import {
+  Installment,
+  Installments,
+  Recurring,
+  RecurringCreateRequest,
+  Type,
+} from "@/types/recurring";
 
 export async function fetchTypes(): Promise<Type[]> {
   const { data, error } = await supabase
-    .from('type')
+    .from("type")
     .select(`
       *,
       nature:nature_id(name)
-    `)
+    `);
 
   if (error) throw new Error(error.message);
 
-  return data || []
+  return data || [];
 }
 
 export async function fetchRecurringTransactions(
   startDateTZString: string | null = null,
   endDateTZString: string | null = null
-): Promise<RecurringTransaction[]> {
+): Promise<Recurring[]> {
   let query = supabase
     .from("recurring_transaction")
     .select(
@@ -63,12 +45,20 @@ export async function fetchRecurringTransactions(
   return data || [];
 }
 
-export async function createRecurringApi(newRecurring: RecurringCreateRequest) {
-  const { error } = await supabase.from("recurring_transaction").insert([newRecurring]);
+export async function createRecurringApi(
+  newRecurring: RecurringCreateRequest
+): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_transaction")
+    .insert([newRecurring]);
+
   if (error) throw error;
 }
 
-export async function updateRecurringApi(id: string, data: RecurringCreateRequest) {
+export async function updateRecurringApi(
+  id: string,
+  data: RecurringCreateRequest
+): Promise<void> {
   const payload = {
     class_id: data.class_id,
     value: data.value,
@@ -78,164 +68,153 @@ export async function updateRecurringApi(id: string, data: RecurringCreateReques
     status: data.status,
   };
 
-  return supabase
+  const { error } = await supabase
     .from("recurring_transaction")
     .update(payload)
-    .eq("id", id)
-    .select();
+    .eq("id", id);
+
+  if (error) throw error;
 }
 
+export async function softDeleteRecurring(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_transaction")
+    .update({ status: 0 })
+    .eq("id", id);
 
-  export async function softDeleteRecurring(id: string) {
+  if (error) throw error;
+}
 
-    const { error } = await supabase
-      .from("recurring_transaction")
-      .update({ status: 0 })
-      .eq("id", id);
-      if (error) throw error;
+export async function deleteRecurringApi(recurringId: string): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_transaction")
+    .delete()
+    .match({ id: recurringId });
 
-    }
+  if (error) throw error;
+}
 
-  export async function deleteRecurringApi(recurringId: number) {
-    const { error } = await supabase
-      .from("recurring_transaction")
-      .delete()
-      .match({ id: recurringId });
-    if (error) throw error;
+export function calculateInstallments(
+  createdAt: string,
+  validity: string | null
+): Installments {
+  if (!validity) return "Essa recorrência não é um parcelamento";
+
+  const createdDate = new Date(createdAt);
+  const validityDate = new Date(validity);
+  const installments: Installment[] = [];
+  const currentDate = new Date(createdDate);
+
+  while (currentDate <= validityDate) {
+    const month = currentDate.toLocaleString("pt-BR", { month: "long" });
+    const year = currentDate.getFullYear();
+
+    installments.push({
+      label: `${month.charAt(0).toUpperCase() + month.slice(1)}/${year}`,
+      number: installments.length + 1,
+    });
+
+    currentDate.setMonth(currentDate.getMonth() + 1);
   }
 
-  export async function calculateInstallments(createdAt: string, validity: string | null) {
-    if (!validity) return "Essa recorrência não é um parcelamento";
+  return installments;
+}
 
-    const createdDate = new Date(createdAt);
-    const validityDate = new Date(validity);
+export async function updateRecurringParcelPayment(
+  transactionId: string,
+  installmentNumber: number,
+  currentPaidParcels: number[]
+): Promise<number[]> {
+  const updatedParcels = currentPaidParcels.includes(installmentNumber)
+    ? currentPaidParcels.filter((parcel) => parcel !== installmentNumber)
+    : [...currentPaidParcels, installmentNumber];
 
-    let installments = [];
-    let currentDate = new Date(createdDate);
+  const { error } = await supabase
+    .from("recurring_transaction")
+    .update({ paid_parcels: updatedParcels })
+    .eq("id", transactionId);
 
-    while (currentDate <= validityDate) {
-      const month = currentDate.toLocaleString("pt-BR", { month: "long" });
-      const year = currentDate.getFullYear();
-      installments.push({ label: `${month.charAt(0).toUpperCase() + month.slice(1)}/${year}`, number: installments.length + 1 });
+  if (error) throw error;
 
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-
-    return installments;
+  if (!currentPaidParcels.includes(installmentNumber)) {
+    await registerTransaction(transactionId);
   }
 
-  export async function toggleParcelPayment(
-    transactionId: string,
-    installmentNumber: number,
-    currentPaidParcels: number[],
-    setRecurring: React.Dispatch<React.SetStateAction<any[]>>
-  ) {
-    const updatedParcels = currentPaidParcels.includes(installmentNumber)
-      ? currentPaidParcels.filter(p => p !== installmentNumber) // Se já está paga, remover
-      : [...currentPaidParcels, installmentNumber]; // Se não está paga, adicionar
-  
-    setRecurring(prevTransactions =>
-      prevTransactions.map(transaction =>
-        transaction.id === transactionId ? { ...transaction, paid_parcels: updatedParcels } : transaction
-      )
-    );
-  
-    const { error } = await supabase
-      .from("recurring_transaction")
-      .update({ paid_parcels: updatedParcels })
-      .eq("id", transactionId);
-  
-    if (error) {
-      console.error("Erro ao atualizar parcelas pagas:", error);
-  
-      setRecurring(prevTransactions =>
-        prevTransactions.map(transaction =>
-          transaction.id === transactionId ? { ...transaction, paid_parcels: currentPaidParcels } : transaction
-        )
-      );
-    } else {
-      if (!currentPaidParcels.includes(installmentNumber)) {
-        await registerTransaction(transactionId, installmentNumber);
-      }
-    }
-  }
+  return updatedParcels;
+}
 
-  async function registerTransaction(transactionId: string, installmentNumber: number) {
-    const utc3Date = new Date()
+async function registerTransaction(transactionId: string): Promise<void> {
+  const utc3Date = new Date()
     .toISOString()
-    .slice(0, 10)
+    .slice(0, 10);
 
-    const { data: recurring, error: fetchError } = await supabase
-      .from("recurring_transaction")
-      .select("class_id, description, value")
-      .eq("id", transactionId)
-      .single();
+  const { data: recurring, error: fetchError } = await supabase
+    .from("recurring_transaction")
+    .select("class_id, description, value")
+    .eq("id", transactionId)
+    .single();
 
-    if (fetchError || !recurring) {
-      console.error("Erro ao buscar a transação recorrente:", fetchError?.message || fetchError);
-      return;
-    }
-
-    const newTransaction = {
-      class_id: recurring.class_id,
-      description: recurring.description,
-      value: recurring.value,
-      transaction_at: utc3Date,
-    };
-
-    console.log("Registrando nova transação:", newTransaction);
-
-    const { error: insertError } = await supabase.from("transaction").insert([newTransaction]);
-
-    if (insertError) {
-      console.error("Erro ao registrar transação:", insertError.message || insertError);
-    } else {
-      console.log(`Parcela ${installmentNumber} registrada com sucesso!`);
-    }
+  if (fetchError || !recurring) {
+    throw new Error(fetchError?.message || "Erro ao buscar a transação recorrente.");
   }
 
-  export async function sumRecurringByNature() {
-    const { data, error } = await supabase
+  const newTransaction = {
+    class_id: recurring.class_id,
+    description: recurring.description,
+    value: recurring.value,
+    transaction_at: utc3Date,
+  };
+
+  const { error: insertError } = await supabase
+    .from("transaction")
+    .insert([newTransaction]);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
+export async function sumRecurringByNature() {
+  const { data, error } = await supabase
     .from("vw_recurring_transaction_with_nature")
     .select("*")
     .neq("status", false);
-  
 
-    if (error) throw error;
+  if (error) throw error;
 
-    let totalFixesPay = 0;
-    let totalFixesReceivable = 0;
+  let totalFixesPay = 0;
+  let totalFixesReceivable = 0;
 
-    for (const item of data ?? []) {
-      if (item.nature_id === 2) {
-        totalFixesPay += item.sum || 0;
-      } else if (item.nature_id === 1) {
-        totalFixesReceivable += item.sum || 0;
-      }
+  for (const item of data ?? []) {
+    if (item.nature_id === 2) {
+      totalFixesPay += item.sum || 0;
+    } else if (item.nature_id === 1) {
+      totalFixesReceivable += item.sum || 0;
     }
-
-    return { totalFixesPay, totalFixesReceivable };
   }
 
-  export async function fetchDimensions() {
-    const { data, error } = await supabase
-      .from("nature")
-      .select(`
+  return { totalFixesPay, totalFixesReceivable };
+}
+
+export async function fetchDimensions() {
+  const { data, error } = await supabase
+    .from("nature")
+    .select(`
+      id,
+      name,
+      types: type!nature_id (
         id,
         name,
-        types: type!nature_id (
+        classes: class!type_id (
           id,
-          name,
-          classes: class!type_id (
-            id,
-            name
-          )
+          name
         )
-      `)
-  
-    if (error) {
-      throw new Error(error.message);
-    }
-  
-    return data; 
+      )
+    `);
+
+  if (error) {
+    throw new Error(error.message);
   }
+
+  return data;
+}

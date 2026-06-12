@@ -125,3 +125,10 @@ export interface MonthlyBudgetSuggestion {
   suggested_value: number;
   average_spent: number;
 }
+
+export interface ValueByNatureYearMonth {
+  year: number;
+  month: number;
+  receita_total: number;
+  despesa_total: number;
+}

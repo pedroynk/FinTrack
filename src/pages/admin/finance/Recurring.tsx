@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   calculateInstallments,
   fetchRecurringTransactions,
-  RecurringTransaction,
   sumRecurringByNature,
   fetchDimensions,
   updateRecurringApi,
@@ -15,11 +14,11 @@ import type { Dimension, Recurring, RecurringCreateRequest } from "@/types/recur
 import { toast } from "@/hooks/use-toast";
 
 export default function Recurring() {
-  const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
+  const [recurring, setRecurring] = useState<Recurring[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmOpenSoft, setConfirmOpenSoft] = useState(false);
   const [confirmPaymentOpen, setConfirmPaymentOpen] = useState(false);
-  const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
+  const [selectedRecurring, setSelectedRecurring] = useState<Recurring | null>(null);
   const [open, setOpen] = useState(false);
   const [totalFixesPay, setTotalFixesPay] = useState(0);
   const [totalFixesReceivable, setTotalFixesReceivable] = useState(0);
@@ -46,12 +45,10 @@ export default function Recurring() {
   const reloadRecurring = async () => {
     try {
       const data = await fetchRecurringTransactions();
-      const withInstallments = await Promise.all(
-        data.map(async (rec) => ({
-          ...rec,
-          installments: await calculateInstallments(rec.created_at, rec.validity),
-        }))
-      );
+      const withInstallments = data.map((rec) => ({
+        ...rec,
+        installments: calculateInstallments(rec.created_at, rec.validity),
+      }));
 
       setRecurring(withInstallments);
 
@@ -177,7 +174,6 @@ export default function Recurring() {
       <section className="w-full min-w-0 overflow-x-auto rounded-xl border">
         <RecurringTable
           recurring={recurring}
-          setRecurring={setRecurring}
           confirmOpen={confirmOpen}
           setConfirmOpen={setConfirmOpen}
           confirmOpenSoft={confirmOpenSoft}

@@ -39,7 +39,6 @@ export function RecurringFormDialog({
         for (const type of nature.types) {
           const found = type.classes.find((c) => c.id === newRecurring.class_id);
           if (found) {
-            console.log("ENCONTROU!", { natureId: nature.id, typeId: type.id });
             setSelectedNature(nature.id);
             setSelectedType(type.id);
             return;
@@ -216,7 +215,7 @@ export function RecurringFormDialog({
             <Label>Vencimento</Label>
             <DatePicker
               date={newRecurring.validity ? new Date(newRecurring.validity) : undefined}
-              onSelect={(date: Date | undefined, _event?: any) =>
+              onSelect={(date: Date | undefined) =>
                 setNewRecurring({
                   ...newRecurring,
                   validity: date ? date.toISOString().split("T")[0] : null,

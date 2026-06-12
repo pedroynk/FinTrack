@@ -43,7 +43,6 @@ function ClassManager({ types }: { types: Type[] }) {
   }
 
   async function handleCreate() {
-    console.log(newClass);
     await createClassApi(newClass);
     fetchClasses().then(setClasses);
     setNewClass({ name: "", type_id: 0 });

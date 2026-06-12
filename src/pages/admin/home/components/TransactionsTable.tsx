@@ -23,7 +23,7 @@ import {
 
 import { Transaction } from "@/types/finance";
 
-export const columns: ColumnDef<Transaction>[] = [
+const columns: ColumnDef<Transaction>[] = [
   {
     accessorKey: "class",
     header: "Classe",

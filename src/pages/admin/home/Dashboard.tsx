@@ -1,6 +1,6 @@
   "use client";
 
-  import { useEffect, useState } from "react";
+  import { useCallback, useEffect, useState } from "react";
   import {
     Card,
     CardContent,
@@ -10,7 +10,6 @@
   } from "@/components/ui/card";
   import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
   import { Overview } from "./components/overview";
-  import { supabase } from "@/lib/supabase";
   import {
     Select,
     SelectContent,
@@ -19,21 +18,46 @@
     SelectValue,
   } from "@/components/ui/select";
   import { TransactionsTable } from "./components/TransactionsTable";
-  import { Transaction } from "@/types/finance";
+  import { Transaction, ValueByNatureYearMonth } from "@/types/finance";
   import { KpiCardProps, KpiCardsGrid } from "./components/KpiCard";
   import { DonutChart, DonutChartData } from "./components/PieChart";
-  import { fetchTransactions } from "@/api/finance";
+  import {
+    fetchTransactions,
+    fetchValueByNatureForMonth,
+    fetchValueByNatureYearMonth,
+  } from "@/api/finance";
   import { Button } from "@/components/ui/button";
 
   const today = new Date();
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
 
-  interface CardsData {
-    year: number;
-    month: number;
-    receita_total: number;
-    despesa_total: number;
+  function buildDonutChartData(
+    transactions: Transaction[],
+    nature: string
+  ): DonutChartData[] {
+    const groupedData: Record<string, DonutChartData> = {};
+
+    transactions.forEach((transaction) => {
+      const natureName = transaction.class?.type?.nature?.name;
+      const typeName = transaction.class?.type?.name;
+      const typeColor = transaction.class?.type?.hex_color;
+      const value = transaction.value;
+
+      if (!natureName || natureName !== nature) return;
+
+      if (!groupedData[typeName]) {
+        groupedData[typeName] = {
+          type: typeName,
+          total_value: 0,
+          fill: typeColor || "#CCCCCC",
+        };
+      }
+
+      groupedData[typeName].total_value += value;
+    });
+
+    return Object.values(groupedData);
   }
 
   export default function Dashboard() {
@@ -51,7 +75,7 @@
       DonutChartData[]
     >([]);
 
-    const [datasets, setDatasets] = useState<CardsData[]>([]);
+    const [datasets, setDatasets] = useState<ValueByNatureYearMonth[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -108,66 +132,25 @@
       },
     ];
 
-    const fetchChartData = async (): Promise<CardsData[]> => {
+    const fetchChartData = useCallback(async (): Promise<ValueByNatureYearMonth[]> => {
       try {
-        const { data, error } = await supabase
-          .from("vw_value_by_nature_year_month")
-          .select("year, month, receita_total, despesa_total");
-
-        if (error) throw error;
-        return data;
+        return await fetchValueByNatureYearMonth();
       } catch (error) {
         console.error("Erro ao buscar dados do gráfico:", error);
         return [];
       }
-    };
+    }, []);
 
-    const fetchCardsData = async (): Promise<CardsData | null> => {
+    const fetchCardsData = useCallback(async (): Promise<ValueByNatureYearMonth | null> => {
       try {
-        const { data, error } = await supabase
-          .from("vw_value_by_nature_year_month")
-          .select("year, month, receita_total, despesa_total")
-          .eq("year", selectedYear)
-          .eq("month", selectedMonth)
-          .single();
-
-        if (error) throw error;
-        return data as CardsData;
+        return await fetchValueByNatureForMonth(selectedYear, selectedMonth);
       } catch (error) {
         console.error("Erro ao buscar dados dos cards:", error);
         return null;
       }
-    };
+    }, [selectedMonth, selectedYear]);
 
-    const fetchPieChartData = async (
-      transactions: Transaction[],
-      nature: string
-    ): Promise<DonutChartData[]> => {
-      const groupedData: Record<string, DonutChartData> = {};
-
-      transactions.forEach((transaction) => {
-        const natureName = transaction.class?.type?.nature?.name;
-        const typeName = transaction.class?.type?.name;
-        const typeColor = transaction.class?.type?.hex_color;
-        const value = transaction.value;
-
-        if (!natureName || natureName !== nature) return;
-
-        if (!groupedData[typeName]) {
-          groupedData[typeName] = {
-            type: typeName,
-            total_value: 0,
-            fill: typeColor || "#CCCCCC",
-          };
-        }
-
-        groupedData[typeName].total_value += value;
-      });
-
-      return Object.values(groupedData);
-    };
-
-    const fetchTransactionsData = async () => {
+    const fetchTransactionsData = useCallback(async () => {
       try {
         const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).getDate();
 
@@ -186,7 +169,7 @@
         console.error("Error fetching transactions:", error);
         return [];
       }
-    };
+    }, [selectedMonth, selectedYear]);
 
     useEffect(() => {
       async function getCardsData() {
@@ -208,8 +191,8 @@
         const data = await fetchTransactionsData();
         setTransactions(data);
 
-        const receitaData = await fetchPieChartData(data, "Receita");
-        const despesaData = await fetchPieChartData(data, "Despesa");
+        const receitaData = buildDonutChartData(data, "Receita");
+        const despesaData = buildDonutChartData(data, "Despesa");
 
         setDonutChartDataReceita(receitaData);
         setDonutChartDataDespesa(despesaData);
@@ -217,7 +200,7 @@
 
       getTransactions();
       getCardsData();
-    }, [selectedMonth, selectedYear]);
+    }, [fetchCardsData, fetchTransactionsData]);
 
     useEffect(() => {
       async function getChartData() {
@@ -228,7 +211,7 @@
       }
 
       getChartData();
-    }, []);
+    }, [fetchChartData]);
 
     const receitaTransactions = transactions.filter((transaction) => {
       const isReceita = transaction.class?.type?.nature?.name === "Receita";

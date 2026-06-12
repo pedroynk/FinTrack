@@ -13,6 +13,7 @@ import {
   MonthlyBudgetUpdateRequest,
   MonthlyBudgetSummary,
   MonthlyBudgetSuggestion,
+  ValueByNatureYearMonth,
 } from "@/types/finance";
 
 export async function fetchNatures(): Promise<Nature[]> {
@@ -185,6 +186,34 @@ export async function fetchTransactions(
   }
 
   return data || [];
+}
+
+export async function fetchValueByNatureYearMonth(): Promise<
+  ValueByNatureYearMonth[]
+> {
+  const { data, error } = await supabase
+    .from("vw_value_by_nature_year_month")
+    .select("year, month, receita_total, despesa_total");
+
+  if (error) throw new Error(error.message);
+
+  return data || [];
+}
+
+export async function fetchValueByNatureForMonth(
+  year: number,
+  month: number
+): Promise<ValueByNatureYearMonth | null> {
+  const { data, error } = await supabase
+    .from("vw_value_by_nature_year_month")
+    .select("year, month, receita_total, despesa_total")
+    .eq("year", year)
+    .eq("month", month)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+
+  return data;
 }
 
 export async function createTransactionApi(newTransaction: TransactionCreateRequest) {

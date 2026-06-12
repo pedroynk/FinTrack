@@ -30,7 +30,21 @@ interface DonutChartProps {
   onSliceClick?: (type: string) => void;
 }
 
-const renderActiveShape = (isMobile: boolean) => (props: any) => {
+interface ActiveShapeProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  fill: string;
+  payload: DonutChartData;
+  percent: number;
+  value: number;
+}
+
+const renderActiveShape = (isMobile: boolean) => (props: unknown) => {
   const RADIAN = Math.PI / 180;
   const {
     cx,
@@ -44,7 +58,7 @@ const renderActiveShape = (isMobile: boolean) => (props: any) => {
     payload,
     percent,
     value,
-  } = props;
+  } = props as ActiveShapeProps;
 
   if (isMobile) {
     return (
@@ -81,7 +95,7 @@ const renderActiveShape = (isMobile: boolean) => (props: any) => {
   const my = cy + (outerRadius + 30) * sin;
   const ex = mx + (cos >= 0 ? 1 : -1) * 22;
   const ey = my;
-  const textAnchor = cos >= 0 ? "start" : "end";
+  const textAnchor: "start" | "end" = cos >= 0 ? "start" : "end";
 
   return (
     <g>
@@ -164,7 +178,7 @@ export function DonutChart({
     [isMobile]
   );
 
-  const onPieEnter = (_: any, index: number) => {
+  const onPieEnter = (_: unknown, index: number) => {
     setActiveIndex(index);
   };
 

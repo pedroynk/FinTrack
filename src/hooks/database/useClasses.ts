@@ -1,20 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { Class } from '@/types/finance';
-import { supabase } from '@/lib/supabase';
+import { fetchClasses as fetchClassesApi } from '@/api/finance';
 
 export function useClasses() {
   const [classes, setClasses] = useState<Class[]>([]);
   
   const fetchClasses = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("class")
-      .select("*")
-      .order("name", { ascending: true });
-    if (error) {
+    try {
+      const data = await fetchClassesApi();
+      setClasses(data);
+    } catch (error) {
       console.error("Error fetching classes:", error);
-    } else {
-      setClasses(data || []);
     }
   }, []);
 
